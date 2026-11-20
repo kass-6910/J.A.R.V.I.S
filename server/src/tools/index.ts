@@ -12,6 +12,7 @@ import { describeMail, describePlan, describeReminder, describeTask } from "../s
 import { anyMailboxConfigured, getMail, listMails, proposeReply, setMailHandled } from "../services/mails.js";
 import { getDayPlan, replanToday } from "../services/planning.js";
 import { createReminder, getReminder, listUpcomingReminders } from "../services/reminders.js";
+import { logWorkout, sportWeek } from "../services/health.js";
 import {
   completeTask,
   createTask,
@@ -23,11 +24,12 @@ import {
 
 /** État courant donné à Claude avec chaque demande. */
 export async function describeContext(): Promise<string> {
-  const [open, plan, reminders, mails] = await Promise.all([
+  const [open, plan, reminders, mails, week] = await Promise.all([
     listOpenTasks(),
     getDayPlan(now()),
     listUpcomingReminders(),
     anyMailboxConfigured() ? listMails({ days: 3, limit: 40 }) : Promise.resolve(null),
+    sportWeek(now()),
   ]);
   const toWatch = mails?.filter((m) => m.importance === "high" || m.needsReply).slice(0, 8);
   return [
@@ -35,6 +37,7 @@ export async function describeContext(): Promise<string> {
     "Tâches à faire, dans l'ordre de traitement :",
     ...(open.length > 0 ? open.map(describeTask) : ["- aucune"]),
     describePlan(plan),
+    `Sport cette semaine : ${week.done} séance(s) sur ${week.target}${week.doneToday ? ", dont une aujourd'hui" : ""}.`,
     "Rappels à venir :",
     ...(reminders.length > 0 ? reminders.map(describeReminder) : ["- aucun"]),
     "Mails importants ou en attente de réponse, non traités (trois derniers jours) :",
@@ -291,6 +294,22 @@ ${mail.body}
         const mail = await setMailHandled(input.mail_id, input.handled ?? true);
         await logExecuted("mark_mail_handled", input, `Mail traité : ${mail.subject}`);
         return mail.handledAt ? `Mail « ${mail.subject} » marqué comme traité.` : `Mail « ${mail.subject} » de nouveau à suivre.`;
+      },
+    }),
+    betaZodTool({
+      name: "log_workout",
+      description:
+        "Enregistre une séance de sport que Jessim dit avoir faite (« j'ai fait ma séance »), quand la montre ne l'a pas envoyée. Le planning est recalé : la séance prévue disparaît.",
+      inputSchema: z.object({
+        type: z.string().optional().describe("Type de séance, par exemple « Musculation » ou « Course »."),
+        minutes: z.number().int().min(5).max(300).optional().describe("Durée, si Jessim la donne."),
+      }),
+      run: async (input) => {
+        const workout = await logWorkout(input);
+        await logExecuted("log_workout", input, `Séance enregistrée : ${workout.type}`);
+        const week = await sportWeek(now());
+        await replanToday();
+        return `Séance enregistrée. Cette semaine : ${week.done} séance(s) sur ${week.target}.`;
       },
     }),
   ];

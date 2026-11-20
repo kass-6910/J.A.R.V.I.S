@@ -15,6 +15,8 @@ export function describeTask(task: Task): string {
   return `- [${task.id}] ${task.title} (${parts.join(" ; ")})`;
 }
 
+const BLOCK_LABEL = { task: "tâche", prayer: "prière, créneau protégé", sport: "sport", meal: "repas" } as const;
+
 export function describePlan(plan: DayPlan): string {
   const lines = [
     ...plan.events.map((e) => ({
@@ -23,7 +25,7 @@ export function describePlan(plan: DayPlan): string {
     })),
     ...plan.blocks.map((b) => ({
       at: b.startsAt.getTime(),
-      text: `${formatTime(b.startsAt)}-${formatTime(b.endsAt)} ${b.title} (tâche)`,
+      text: `${formatTime(b.startsAt)}-${formatTime(b.endsAt)} ${b.title} (${BLOCK_LABEL[b.kind]})`,
     })),
   ]
     .sort((a, b) => a.at - b.at)

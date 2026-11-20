@@ -31,6 +31,19 @@ const schema = z.object({
   MS_CLIENT_ID: z.string().default(""),
   MS_TENANT: z.string().default("organizations"),
   MS_REFRESH_TOKEN: z.string().default(""),
+  /** Sport : séances par semaine, durée, et heure à partir de laquelle Jarvis préfère les placer. */
+  SPORT_SESSIONS_PER_WEEK: z.coerce.number().int().min(0).max(7).default(3),
+  SPORT_DURATION_MIN: z.coerce.number().int().min(15).max(180).default(60),
+  SPORT_PREFERRED_START: hhmm.default("18:00"),
+  /** Prière : horaires calculés par Aladhan pour Lyon ; méthode 12 = UOIF (France). */
+  PRAYER_ENABLED: z.enum(["true", "false"]).default("true").transform((v) => v === "true"),
+  PRAYER_LATITUDE: z.coerce.number().default(45.764),
+  PRAYER_LONGITUDE: z.coerce.number().default(4.8357),
+  PRAYER_METHOD: z.coerce.number().int().default(12),
+  PRAYER_DURATION_MIN: z.coerce.number().int().min(5).max(90).default(15),
+  PRAYER_NOTIFY_BEFORE_MIN: z.coerce.number().int().min(0).max(60).default(10),
+  /** Recueils du rappel quotidien (éditions françaises de la collection de hadiths publiée). */
+  HADITH_EDITIONS: z.string().default("fra-bukhari,fra-muslim,fra-nawawi"),
   /** Adresse publique de la web app, ouverte quand on touche une notification. */
   PUBLIC_URL: z.string().default(""),
   BRIEFING_TIME: hhmm.default("07:00"),

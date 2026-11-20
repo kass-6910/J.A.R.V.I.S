@@ -3,11 +3,14 @@ import { z } from "zod";
 import { ask } from "../brain/index.js";
 import { db, SPACE_SLUGS } from "../db/client.js";
 import { PRIORITIES } from "../db/schema.js";
-import { now, parseDateTime, parseDay } from "../lib/time.js";
+import { now, parseDateTime, parseDay, zone } from "../lib/time.js";
 import { sendNotification } from "../connectors/notifications/ntfy.js";
 import { listPendingActions, resolveAction } from "../services/actions.js";
 import { generateBriefing, latestBriefing, listBriefings } from "../services/briefing.js";
 import { checkMailboxes, getMail, listMails, mailStatus, setMailHandled } from "../services/mails.js";
+import { getDailyHadith, getPrayerTimes } from "../services/prayer.js";
+import { getHealthDay, ingestHealth, logWorkout, sportWeek } from "../services/health.js";
+import { parseHealthAutoExport, parseShortcutHealth } from "../health/ingest.js";
 import { cancelReminder, listUpcomingReminders } from "../services/reminders.js";
 import { spaceBoard, spaceLinks, spacesOverview } from "../services/spaces.js";
 import { getDayPlan, replanToday } from "../services/planning.js";
@@ -169,6 +172,51 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
   app.post("/briefings/:kind", async (req) => {
     const { kind } = z.object({ kind: z.enum(["morning", "evening"]) }).parse(req.params);
     return generateBriefing(kind);
+  });
+
+  /**
+   * Données Santé de l'iPhone : export de l'app Health Auto Export (JSON) ou Raccourci « Santé » du soir.
+   * Les exports peuvent être gros : limite relevée à 10 Mo pour cette route.
+   */
+  app.post("/health/ingest", { bodyLimit: 10 * 1024 * 1024 }, async (req) => {
+    const body = req.body as Record<string, unknown> | undefined;
+    const parsed =
+      body && typeof body.data === "object"
+        ? parseHealthAutoExport(body, zone)
+        : body && typeof body.jour === "string"
+          ? parseShortcutHealth(body, zone)
+          : null;
+    if (!parsed) throw Object.assign(new Error("Format inconnu : attendu un export Health Auto Export ou le Raccourci « Santé »."), { statusCode: 400 });
+    const result = await ingestHealth(parsed);
+    await replanToday();
+    return result;
+  });
+
+  app.get("/health/summary", async () => {
+    const today = now().startOf("day");
+    const [lastNight, yesterday, week] = await Promise.all([
+      getHealthDay(today),
+      getHealthDay(today.minus({ days: 1 })),
+      sportWeek(today),
+    ]);
+    return { lastNight, yesterday, week };
+  });
+
+  app.post("/health/workouts", async (req, reply) => {
+    const body = z
+      .object({ type: z.string().trim().min(1).max(100).optional(), minutes: z.number().int().min(5).max(300).optional() })
+      .parse(req.body ?? {});
+    const workout = await logWorkout(body);
+    await replanToday();
+    return reply.code(201).send(workout);
+  });
+
+  /** Horaires de prière du jour et rappel du jour. */
+  app.get("/prayer", async (req) => {
+    const { date } = z.object({ date: z.string().optional() }).parse(req.query);
+    const day = date ? parseDay(date) : now().startOf("day");
+    const [times, hadith] = await Promise.all([getPrayerTimes(day), getDailyHadith(day)]);
+    return { enabled: times !== null, times, hadith };
   });
 
   app.post("/notifications/test", async () => {

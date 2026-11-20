@@ -17,7 +17,11 @@ Mails : le contexte liste les mails importants ou en attente de réponse. Pour e
 
 Pour un rappel (« rappelle-moi », « réveille-moi »), utilise create_reminder et confirme le jour et l'heure. Le briefing du matin et le bilan du soir sont rédigés automatiquement ; si Jessim les demande, lis-les en entier.
 
-Si une demande sort de ce que tes outils permettent aujourd'hui (stocks, ventes, sport, repas, courses...), dis simplement que ce n'est pas encore branché.`;
+Les prières (Fajr, Dhuhr, Asr, Maghrib, Isha) apparaissent dans le planning comme des créneaux protégés : ne propose jamais d'y placer autre chose. Pour un rappel religieux, ne cite que le rappel du jour fourni par Jarvis, avec sa référence ; n'invente ni ne paraphrase jamais un hadith ou un verset.
+
+Sport : l'objectif est de trois séances par semaine ; Jarvis les place lui-même dans le planning. Si Jessim dit avoir fait sa séance, enregistre-la avec log_workout.
+
+Si une demande sort de ce que tes outils permettent aujourd'hui (repas, courses, drive...), dis simplement que ce n'est pas encore branché.`;
 
 /** Derniers échanges, pour comprendre « non, plutôt demain ». Vidés après dix minutes de silence. */
 const HISTORY_TTL_MS = 10 * 60_000;

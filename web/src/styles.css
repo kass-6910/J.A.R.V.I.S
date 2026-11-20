@@ -8,6 +8,7 @@
   --success: #4fbf8b;
   --warning: #e0a43a;
   --critical: #e5484d;
+  --prayer: #9a86e8;
   color-scheme: dark;
 }
 
@@ -499,4 +500,78 @@ nav button.active {
   padding: 0;
   min-height: 44px;
   margin-bottom: 4px;
+}
+
+.hadith {
+  margin-top: 10px;
+  display: grid;
+  gap: 6px;
+  border-color: var(--prayer);
+}
+
+.hadith strong {
+  font-size: 13px;
+  color: var(--prayer);
+}
+
+.slot.prayer {
+  border-left: 3px solid var(--prayer);
+}
+
+.slot.past {
+  opacity: 0.5;
+}
+
+.health {
+  display: grid;
+  gap: 6px;
+}
+
+.health strong {
+  font-size: 14px;
+}
+
+.health.sleep,
+.health.sport,
+.health.activity {
+  border-color: var(--success);
+}
+
+.health.prayer-card {
+  border-color: var(--prayer);
+}
+
+.health .row {
+  justify-content: flex-end;
+}
+
+.dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dots i {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid var(--success);
+}
+
+.dots i.on {
+  background: var(--success);
+}
+
+.dots span {
+  margin-left: 6px;
+  font-size: 14px;
+}
+
+.slot.sport {
+  border-left: 3px solid var(--success);
+}
+
+.footnote {
+  margin-top: 16px;
+  font-size: 13px;
 }

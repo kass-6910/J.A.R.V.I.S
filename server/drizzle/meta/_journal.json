@@ -22,6 +22,20 @@
       "when": 1795194184088,
       "tag": "0002_reflective_nightshade",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795195146017,
+      "tag": "0003_keen_vulcan",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795195335086,
+      "tag": "0004_moaning_wrecker",
+      "breakpoints": true
     }
   ]
 }

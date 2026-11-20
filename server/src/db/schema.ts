@@ -11,6 +11,7 @@ import {
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const PRIORITIES = ["low", "normal", "high", "urgent"] as const;
 export type Priority = (typeof PRIORITIES)[number];
@@ -69,7 +70,11 @@ export const scheduleBlocks = pgTable(
     endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
     protected: boolean().notNull().default(false),
   },
-  (t) => [index("schedule_blocks_day_idx").on(t.day)],
+  (t) => [
+    index("schedule_blocks_day_idx").on(t.day),
+    // Un seul créneau de chaque prière par jour : la création reste idempotente.
+    uniqueIndex("schedule_blocks_prayer_idx").on(t.day, t.title).where(sql`kind = 'prayer'`),
+  ],
 );
 
 /** Historique de chaque action de Jarvis, avec son statut de validation. */
@@ -190,3 +195,48 @@ export const kvStore = pgTable("kv_store", {
   value: text().notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const PRAYERS = ["fajr", "dhuhr", "asr", "maghrib", "isha"] as const;
+export type Prayer = (typeof PRAYERS)[number];
+
+/** Horaires de prière d'un jour, tels que calculés par Aladhan (ISO 8601). */
+export const prayerTimes = pgTable("prayer_times", {
+  day: date().primaryKey(),
+  timings: jsonb().$type<Record<Prayer, string>>().notNull(),
+  method: integer().notNull(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Rappel religieux du jour : un hadith tiré d'un recueil publié, jamais rédigé par l'IA. */
+export const dailyHadith = pgTable("daily_hadith", {
+  day: date().primaryKey(),
+  edition: text().notNull(),
+  collection: text().notNull(),
+  number: text().notNull(),
+  text: text().notNull(),
+  grade: text(),
+});
+
+/** Données Santé d'une journée (Apple Watch via l'app Santé). Le sommeil est rattaché au jour du réveil. */
+export const healthDays = pgTable("health_days", {
+  day: date().primaryKey(),
+  steps: integer(),
+  activeKcal: integer("active_kcal"),
+  sleepMin: integer("sleep_min"),
+  sleepStart: timestamp("sleep_start", { withTimezone: true }),
+  sleepEnd: timestamp("sleep_end", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Séances enregistrées par la montre. */
+export const workouts = pgTable(
+  "workouts",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    type: text().notNull(),
+    startsAt: timestamp("starts_at", { withTimezone: true }).notNull(),
+    endsAt: timestamp("ends_at", { withTimezone: true }).notNull(),
+    kcal: integer(),
+  },
+  (t) => [uniqueIndex("workouts_start_type_idx").on(t.startsAt, t.type)],
+);

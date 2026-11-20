@@ -20,7 +20,14 @@ export interface Task {
 export interface DayPlan {
   day: string;
   events: { id: string; title: string; start: string; end: string; allDay: boolean }[];
-  blocks: { id: string; taskId: string | null; title: string; startsAt: string; endsAt: string }[];
+  blocks: {
+    id: string;
+    kind: "task" | "prayer" | "sport" | "meal";
+    taskId: string | null;
+    title: string;
+    startsAt: string;
+    endsAt: string;
+  }[];
   calendar: "connected" | "not_configured" | "error";
 }
 
@@ -75,6 +82,34 @@ export interface SpaceLink {
   spaces: string[];
 }
 
+export interface Hadith {
+  collection: string;
+  number: string;
+  text: string;
+  grade: string | null;
+}
+
+export interface PrayerInfo {
+  enabled: boolean;
+  times: Record<"fajr" | "dhuhr" | "asr" | "maghrib" | "isha", string> | null;
+  hadith: Hadith | null;
+}
+
+export interface HealthDay {
+  day: string;
+  steps: number | null;
+  activeKcal: number | null;
+  sleepMin: number | null;
+  sleepStart: string | null;
+  sleepEnd: string | null;
+}
+
+export interface HealthSummary {
+  lastNight: HealthDay | null;
+  yesterday: HealthDay | null;
+  week: { target: number; done: number; doneToday: boolean; days: string[] };
+}
+
 export interface PendingAction {
   id: string;
   summary: string;
@@ -124,6 +159,9 @@ export const api = {
   planning: () => call<DayPlan>("GET", "/planning"),
   pendingActions: () => call<PendingAction[]>("GET", "/actions/pending"),
   briefings: () => call<Briefing[]>("GET", "/briefings"),
+  prayer: () => call<PrayerInfo>("GET", "/prayer"),
+  healthSummary: () => call<HealthSummary>("GET", "/health/summary"),
+  logWorkout: () => call<unknown>("POST", "/health/workouts", {}),
   writeBriefing: (kind: BriefingKind) => call<Briefing>("POST", `/briefings/${kind}`),
   reminders: () => call<Reminder[]>("GET", "/reminders"),
   mails: (query = "") => call<{ status: MailStatus; mails: Mail[] }>("GET", `/mails${query}`),

@@ -8,6 +8,7 @@ import {
   type DayPlan,
   type Mail,
   type MailStatus,
+  type PrayerInfo,
   type Reminder,
   type PendingAction,
   type Priority,
@@ -16,6 +17,7 @@ import {
 } from "./api";
 import { canListen, listen, speak, unlockSpeech } from "./voice";
 import { type Act, MailRow, PRIORITY_LABEL, SpaceDots, TaskRow, duration } from "./components";
+import { Health } from "./Health";
 import { Spaces } from "./Spaces";
 
 const REMINDER_LABEL: Record<Reminder["level"], string> = {
@@ -36,6 +38,13 @@ function reminderWhen(iso: string): string {
   if (dayKey(date) === dayKey(tomorrow)) return `demain ${hour}`;
   return `${date.toLocaleDateString("fr-FR", { ...opts, weekday: "short", day: "numeric", month: "short" })} ${hour}`;
 }
+
+const BLOCK_SOURCE: Record<DayPlan["blocks"][number]["kind"], string> = {
+  task: "Tâche",
+  prayer: "Prière · créneau protégé",
+  sport: "Sport · déplacé si la journée change",
+  meal: "Repas",
+};
 
 const BRIEFING_TITLE = { morning: "Briefing du matin", evening: "Bilan du soir" } as const;
 
@@ -89,6 +98,7 @@ interface Data {
   reminders: Reminder[];
   mails: Mail[];
   mailStatus: MailStatus;
+  prayer: PrayerInfo;
 }
 
 const time = (iso: string) =>
@@ -96,13 +106,13 @@ const time = (iso: string) =>
 
 export function App() {
   const [authed, setAuthed] = useState(() => getToken() !== null);
-  const [tab, setTab] = useState<"home" | "tasks" | "spaces">("home");
+  const [tab, setTab] = useState<"home" | "tasks" | "spaces" | "health">("home");
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const [spaces, tasks, plan, pending, briefings, reminders, mails] = await Promise.all([
+      const [spaces, tasks, plan, pending, briefings, reminders, mails, prayer] = await Promise.all([
         api.spaces(),
         api.tasks(),
         api.planning(),
@@ -110,8 +120,9 @@ export function App() {
         api.briefings(),
         api.reminders(),
         api.mails("?days=3"),
+        api.prayer(),
       ]);
-      setData({ spaces, ...tasks, plan, pending, briefings, reminders, mails: mails.mails, mailStatus: mails.status });
+      setData({ spaces, ...tasks, plan, pending, briefings, reminders, mails: mails.mails, mailStatus: mails.status, prayer });
       setError(null);
     } catch (err) {
       if (err instanceof UnauthorizedError) {
@@ -156,8 +167,10 @@ export function App() {
           <Home data={data} act={act} refresh={refresh} />
         ) : tab === "tasks" ? (
           <Tasks data={data} act={act} />
-        ) : (
+        ) : tab === "spaces" ? (
           <Spaces spaces={data.spaces} act={act} version={data} />
+        ) : (
+          <Health plan={data.plan} prayer={data.prayer} act={act} version={data} />
         )}
       </main>
       <nav>
@@ -169,6 +182,9 @@ export function App() {
         </button>
         <button className={tab === "spaces" ? "active" : ""} onClick={() => setTab("spaces")}>
           Espaces
+        </button>
+        <button className={tab === "health" ? "active" : ""} onClick={() => setTab("health")}>
+          Santé
         </button>
       </nav>
     </div>
@@ -263,6 +279,8 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
       title: e.title,
       slugs: [] as string[],
       source: "Agenda",
+      kind: "event",
+      past: new Date(e.end).getTime() < Date.now(),
     })),
     ...data.plan.blocks.map((b) => ({
       key: `b-${b.id}`,
@@ -270,7 +288,9 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
       label: `${time(b.startsAt)} – ${time(b.endsAt)}`,
       title: b.title,
       slugs: (b.taskId && taskById.get(b.taskId)?.spaces) || [],
-      source: "Tâche",
+      source: BLOCK_SOURCE[b.kind],
+      kind: b.kind as string,
+      past: new Date(b.endsAt).getTime() < Date.now(),
     })),
   ].sort((a, b) => a.at.localeCompare(b.at));
 
@@ -317,6 +337,16 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
       {reply && <p className="card reply">{reply}</p>}
 
       <BriefingCard briefings={data.briefings} act={act} />
+      {data.prayer.hadith && (
+        <div className="card hadith">
+          <strong>Rappel du jour</strong>
+          <p>{data.prayer.hadith.text}</p>
+          <p className="muted">
+            {data.prayer.hadith.collection}, n° {data.prayer.hadith.number}
+            {data.prayer.hadith.grade && ` · ${data.prayer.hadith.grade}`}
+          </p>
+        </div>
+      )}
 
       {data.pending.map((action) => (
         <div key={action.id} className="card pending">
@@ -377,7 +407,7 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
       ) : (
         <ul className="list">
           {agenda.map((item) => (
-            <li key={item.key} className="card slot">
+            <li key={item.key} className={`card slot ${item.kind} ${item.past ? "past" : ""}`}>
               <span className="when">{item.label}</span>
               <span className="what">
                 {item.title}
