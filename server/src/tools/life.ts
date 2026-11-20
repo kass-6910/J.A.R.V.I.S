@@ -28,6 +28,7 @@ import { now } from "../lib/time.js";
 import { addExpense, addSubscription, listSubscriptions, monthBudget } from "../services/budget.js";
 import { EXPENSE_CATEGORIES, formatEuros } from "../budget/rules.js";
 import { SPACE_SLUGS } from "../db/client.js";
+import { todayOutfit } from "../services/wardrobe.js";
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date AAAA-MM-JJ");
 const id = z.string().uuid().describe("Identifiant entre crochets, donné par life_overview ou le contexte.");
@@ -339,6 +340,17 @@ export function lifeTools() {
           `Abonnements : ${subs.length === 0 ? "aucun" : subs.map((x) => `${x.name} [${x.id}] ${formatEuros(x.amountCents)} le ${x.dayOfMonth}`).join(", ")}.`,
           ...b.professional.map((p) => `Dépenses pro ${p.space} : ${formatEuros(p.cents)}`),
         ].join("\n");
+      },
+    }),
+    betaZodTool({
+      name: "outfit_today",
+      description:
+        "Donne la tenue proposée aujourd'hui selon la météo et l'agenda (ou en propose une autre avec refresh). Les vêtements s'ajoutent en photo dans l'application.",
+      inputSchema: z.object({ refresh: z.boolean().optional().describe("Vrai pour proposer une autre tenue.") }),
+      run: async (input) => {
+        const outfit = await todayOutfit({ refresh: input.refresh });
+        if (!outfit) return "La garde-robe est vide : Jessim ajoute ses vêtements en photo dans l'application.";
+        return `Tenue (${outfit.reason}) : ${outfit.items.map((i) => i.label).join(", ")}.${outfit.sportBag ? ` Sac de sport : ${outfit.sportBag.label}.` : ""}`;
       },
     }),
   ];

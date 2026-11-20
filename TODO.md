@@ -19,6 +19,7 @@ Ces services n'étaient pas joignables depuis l'environnement de développement 
 
 - [ ] Horaires de prière (Aladhan) : vérifier les heures du jour pour Lyon et la méthode de calcul choisie.
 - [ ] Rappel du jour (collection hadith-api) : vérifier qu'un hadith arrive bien avec son recueil et son numéro.
+- [ ] Météo (Open-Meteo) : vérifier la prévision du jour pour Lyon.
 - [ ] Gmail, Outlook de l'école, Google Agenda, ntfy, Claude : premier vrai passage de chaque connecteur.
 
 ## Vie quotidienne

@@ -64,6 +64,13 @@
       "when": 1795196784918,
       "tag": "0008_right_molten_man",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795196988358,
+      "tag": "0009_volatile_sabra",
+      "breakpoints": true
     }
   ]
 }

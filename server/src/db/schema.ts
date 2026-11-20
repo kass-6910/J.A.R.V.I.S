@@ -398,3 +398,26 @@ export const subscriptions = pgTable("subscriptions", {
   category: text().notNull().default("abonnements"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** Vêtements de Jessim, une photo chacun, classés par Claude. */
+export const wardrobeItems = pgTable("wardrobe_items", {
+  id: uuid().primaryKey().defaultRandom(),
+  photoFile: text("photo_file").notNull(),
+  type: text().notNull(),
+  label: text().notNull(),
+  color: text().notNull(),
+  style: text().notNull(),
+  warmth: text().notNull(),
+  rainProof: boolean("rain_proof").notNull().default(false),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Tenue proposée chaque jour (sert aussi à ne pas reproposer la tenue de la veille). */
+export const outfits = pgTable("outfits", {
+  day: date().primaryKey(),
+  itemIds: jsonb("item_ids").$type<string[]>().notNull(),
+  sportBagId: uuid("sport_bag_id"),
+  reason: text().notNull(),
+  weather: jsonb().$type<{ minC: number; maxC: number; rainChance: number; summary: string } | null>(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

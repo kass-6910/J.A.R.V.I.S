@@ -13,6 +13,7 @@ import { manageoFacts } from "./manageo.js";
 import { lifeFacts } from "./life.js";
 import { mealFacts } from "./meals.js";
 import { budgetFacts } from "./budget.js";
+import { outfitFacts } from "./wardrobe.js";
 import { describeHadith, getDailyHadith } from "./prayer.js";
 import { anyMailboxConfigured, listMails, type Mail } from "./mails.js";
 import { previewDay, replanToday } from "./planning.js";
@@ -97,13 +98,14 @@ async function morningFacts(day: DateTime): Promise<string> {
     manageoFacts(),
     lifeFacts("morning"),
   ]);
-  const [meals, budget] = await Promise.all([mealFacts(), budgetFacts("morning")]);
+  const [meals, budget, outfit] = await Promise.all([mealFacts(), budgetFacts("morning"), outfitFacts()]);
   return [
     `Nous sommes ${day.setLocale("fr").toFormat("cccc d LLLL yyyy")}.`,
     ...describeReview("Hier", yesterdayReview),
     ...health,
     describePlan(plan),
     ...meals,
+    ...outfit,
     ...section("Échéances dans les deux jours", deadlines),
     ...section("Rappels prévus aujourd'hui", reminders),
     ...mailLines,
@@ -166,6 +168,7 @@ const INSTRUCTIONS: Record<BriefingKind, string> = {
 Écris le briefing du matin, environ une minute à l'oral (120 à 170 mots), dans cet ordre :
 1. un court retour sur la veille : ce qui est fait, ce qui ne l'est pas, l'écart entre temps prévu et réel s'il est connu, la nuit (durée, régularité), l'activité et le sport de la semaine ;
 2. le programme de la journée : les rendez-vous, les tâches dans l'ordre, les échéances, les rappels, les mails importants et les annonces de l'école ;
+2 quater. la météo et la tenue proposée, en une phrase ;
 2 ter. la vie perso si des faits sont fournis : anniversaires, papiers à faire, soins à caler, proche à appeler ;
 2 bis. les boutiques LMDD : chiffre d'affaires de la veille (avec la comparaison si elle est fournie), stocks critiques, ruptures prévues et trous dans le planning de l'équipe avec qui appeler ;
 3. une ou deux pistes concrètes pour faire mieux aujourd'hui, tirées des faits (par exemple attaquer tôt une tâche repoussée, ou revoir une estimation trop courte) ;

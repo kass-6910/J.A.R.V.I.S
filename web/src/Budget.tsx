@@ -19,7 +19,7 @@ const euros = (cents: number) =>
   `${(cents / 100).toLocaleString("fr-FR", { minimumFractionDigits: cents % 100 ? 2 : 0, maximumFractionDigits: 2 })} €`;
 
 /** Réduit une photo (1600 px au plus, JPEG) avant l'envoi. */
-async function shrink(file: File): Promise<string> {
+export async function shrink(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
   const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
   const canvas = document.createElement("canvas");
@@ -127,14 +127,17 @@ export function BudgetSection({ act, version }: { act: Act; version: unknown }) 
       {budget.expenses.length > 0 && (
         <ul className="list">
           {budget.expenses.slice(0, 8).map((e) => (
-            <li key={e.id} className="card slot">
+            <li key={e.id} className="card slot expense">
               <span className="when">{new Date(`${e.spentOn}T12:00:00`).toLocaleDateString("fr-FR", { day: "numeric", month: "short" })}</span>
               <span className="what">
                 {e.label}
                 <span className="meta">
-                  {e.space === "vie-perso" ? (CATEGORIES.find(([v]) => v === e.category)?.[1] ?? e.category) : "Pro"}
+                  {e.source === "abonnement"
+                    ? "Abonnement"
+                    : e.space === "vie-perso"
+                      ? (CATEGORIES.find(([v]) => v === e.category)?.[1] ?? e.category)
+                      : "Pro"}
                   {e.source === "photo" && " · facture"}
-                  {e.source === "abonnement" && " · abonnement"}
                 </span>
               </span>
               <span className="amount">{euros(e.amountCents)}</span>

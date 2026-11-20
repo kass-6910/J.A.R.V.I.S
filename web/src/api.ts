@@ -199,6 +199,22 @@ export interface Budget {
   subscriptions: { id: string; name: string; amountCents: number; dayOfMonth: number }[];
 }
 
+export interface Garment {
+  id: string;
+  type: string;
+  label: string;
+  color: string;
+  style: string;
+  warmth: string;
+}
+
+export interface TodayOutfit {
+  day: string;
+  items: Garment[];
+  sportBag: Garment | null;
+  reason: string;
+}
+
 export interface PendingAction {
   id: string;
   tool: string;
@@ -257,6 +273,10 @@ export const api = {
   checkShopping: (id: string, checked: boolean) => call<ShoppingItem>("POST", `/shopping/${id}/check`, { checked }),
   life: () => call<LifeOverview>("GET", "/life"),
   budget: () => call<Budget>("GET", "/budget"),
+  wardrobe: () => call<{ items: Garment[]; outfit: TodayOutfit | null }>("GET", "/wardrobe"),
+  addGarment: (image: string, mediaType: string) => call<Garment>("POST", "/wardrobe", { image, mediaType }),
+  removeGarment: (id: string) => call<void>("DELETE", `/wardrobe/${id}`),
+  otherOutfit: () => call<TodayOutfit>("POST", "/wardrobe/outfit"),
   addExpense: (amount: string, label: string, category: string) =>
     call<Expense>("POST", "/expenses", { amount, label, category }),
   addReceipt: (image: string, mediaType: string) => call<Expense>("POST", "/expenses/photo", { image, mediaType }),
@@ -285,3 +305,10 @@ export const api = {
   resolveAction: (id: string, decision: "confirm" | "reject") =>
     call<PendingAction>("POST", `/actions/${id}/${decision}`),
 };
+
+/** Image protégée par le jeton : chargée par fetch, affichée par une URL locale. */
+export async function authedImage(path: string): Promise<string> {
+  const res = await fetch(`/api${path}`, { headers: { Authorization: `Bearer ${getToken() ?? ""}` } });
+  if (!res.ok) throw new Error(`Image indisponible (${res.status})`);
+  return URL.createObjectURL(await res.blob());
+}

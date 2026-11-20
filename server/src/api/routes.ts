@@ -40,6 +40,7 @@ import {
   removeSubscription,
 } from "../services/budget.js";
 import { EXPENSE_CATEGORIES, parseEuros } from "../budget/rules.js";
+import { addGarment, getGarment, listGarments, PHOTO_DIR, removeGarment, todayOutfit } from "../services/wardrobe.js";
 import { config } from "../config.js";
 import { createReadStream } from "node:fs";
 import { basename, join, resolve } from "node:path";
@@ -313,6 +314,32 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     await removeSubscription(idParams.parse(req.params).id);
     return reply.code(204).send();
   });
+
+  // --- Garde-robe ---
+  app.get("/wardrobe", async () => ({ items: await listGarments(), outfit: await todayOutfit() }));
+
+  app.post("/wardrobe", { bodyLimit: 15 * 1024 * 1024 }, async (req, reply) => {
+    const body = z
+      .object({ image: z.string().min(100), mediaType: z.enum(["image/jpeg", "image/png", "image/webp"]) })
+      .parse(req.body);
+    const result = await addGarment(body.image.replace(/^data:[^,]+,/, ""), body.mediaType);
+    return "error" in result ? reply.code(422).send(result) : reply.code(201).send(result);
+  });
+
+  app.get("/wardrobe/:id/photo", async (req, reply) => {
+    const item = await getGarment(idParams.parse(req.params).id);
+    const ext = item.photoFile.split(".").pop();
+    reply.type(ext === "jpg" ? "image/jpeg" : `image/${ext}`);
+    reply.header("Cache-Control", "private, max-age=86400");
+    return reply.send(createReadStream(join(PHOTO_DIR(), basename(item.photoFile))));
+  });
+
+  app.delete("/wardrobe/:id", async (req, reply) => {
+    await removeGarment(idParams.parse(req.params).id);
+    return reply.code(204).send();
+  });
+
+  app.post("/wardrobe/outfit", async () => todayOutfit({ refresh: true }));
 
   // --- Repas ---
   app.get("/meals", async (req) => {

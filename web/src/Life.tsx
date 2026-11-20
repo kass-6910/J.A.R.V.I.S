@@ -1,6 +1,7 @@
 import { type FormEvent, useEffect, useState } from "react";
 import { api, type LifeOverview, type ShoppingItem } from "./api";
 import { BudgetSection } from "./Budget";
+import { Wardrobe } from "./Wardrobe";
 import type { Act } from "./components";
 
 const SOURCE_LABEL: Record<string, string> = {
@@ -125,6 +126,7 @@ export function LifeBoard({ act, version }: { act: Act; version: unknown }) {
         </>
       )}
       <BudgetSection act={act} version={version} />
+      <Wardrobe act={act} version={version} />
     </>
   );
 }
