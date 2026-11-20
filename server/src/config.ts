@@ -51,6 +51,11 @@ const schema = z.object({
   BUDGET_MONTHLY_EUR: z.coerce.number().min(0).default(0),
   /** Dossier des fichiers de Jarvis (photos de factures, de vêtements). */
   DATA_DIR: z.string().default("data"),
+  /** Trajets : clé de l'API Routes de Google Maps, adresse de la maison, mode préféré, marge avant de partir. */
+  GOOGLE_MAPS_API_KEY: z.string().default(""),
+  HOME_ADDRESS: z.string().default(""),
+  TRAVEL_MODE: z.enum(["TRANSIT", "DRIVE"]).default("TRANSIT"),
+  TRAVEL_BUFFER_MIN: z.coerce.number().int().min(0).max(60).default(10),
   /** Météo (tenue du jour) : Lyon par défaut. */
   WEATHER_LATITUDE: z.coerce.number().default(45.764),
   WEATHER_LONGITUDE: z.coerce.number().default(4.8357),

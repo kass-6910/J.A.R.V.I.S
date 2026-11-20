@@ -8,6 +8,7 @@ import {
   type DayPlan,
   type Mail,
   type MailStatus,
+  type PlacesInfo,
   type PrayerInfo,
   type ShopStatus,
   type Reminder,
@@ -19,6 +20,7 @@ import {
 import { canListen, listen, speak, unlockSpeech } from "./voice";
 import { type Act, MailRow, PRIORITY_LABEL, ShopAlerts, SpaceDots, TaskRow, duration } from "./components";
 import { Health } from "./Health";
+import { Settings } from "./Settings";
 import { Spaces } from "./Spaces";
 
 const REMINDER_LABEL: Record<Reminder["level"], string> = {
@@ -46,6 +48,14 @@ const BLOCK_SOURCE: Record<DayPlan["blocks"][number]["kind"], string> = {
   sport: "Sport · déplacé si la journée change",
   meal: "Repas · déplacé si la journée change",
 };
+
+const ARRIVAL_YES = {
+  salle: "Je m'entraîne",
+  boutique: "Je travaille",
+  ecole: "J'ai cours",
+  maison: "Je suis rentré",
+  autre: "Je reste",
+} as const;
 
 const BRIEFING_TITLE = { morning: "Briefing du matin", evening: "Bilan du soir" } as const;
 
@@ -101,6 +111,7 @@ interface Data {
   mailStatus: MailStatus;
   prayer: PrayerInfo;
   shops: ShopStatus[];
+  places: PlacesInfo;
 }
 
 const time = (iso: string) =>
@@ -108,13 +119,13 @@ const time = (iso: string) =>
 
 export function App() {
   const [authed, setAuthed] = useState(() => getToken() !== null);
-  const [tab, setTab] = useState<"home" | "tasks" | "spaces" | "health">("home");
+  const [tab, setTab] = useState<"home" | "tasks" | "spaces" | "health" | "settings">("home");
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const [spaces, tasks, plan, pending, briefings, reminders, mails, prayer, shops] = await Promise.all([
+      const [spaces, tasks, plan, pending, briefings, reminders, mails, prayer, shops, places] = await Promise.all([
         api.spaces(),
         api.tasks(),
         api.planning(),
@@ -124,8 +135,9 @@ export function App() {
         api.mails("?days=3"),
         api.prayer(),
         api.shops(),
+        api.places(),
       ]);
-      setData({ spaces, ...tasks, plan, pending, briefings, reminders, mails: mails.mails, mailStatus: mails.status, prayer, shops: shops.shops });
+      setData({ spaces, ...tasks, plan, pending, briefings, reminders, mails: mails.mails, mailStatus: mails.status, prayer, shops: shops.shops, places });
       setError(null);
     } catch (err) {
       if (err instanceof UnauthorizedError) {
@@ -172,8 +184,10 @@ export function App() {
           <Tasks data={data} act={act} />
         ) : tab === "spaces" ? (
           <Spaces spaces={data.spaces} shops={data.shops} act={act} version={data} />
-        ) : (
+        ) : tab === "health" ? (
           <Health plan={data.plan} prayer={data.prayer} act={act} version={data} />
+        ) : (
+          <Settings act={act} version={data} onLogout={() => setAuthed(false)} />
         )}
       </main>
       <nav>
@@ -188,6 +202,9 @@ export function App() {
         </button>
         <button className={tab === "health" ? "active" : ""} onClick={() => setTab("health")}>
           Santé
+        </button>
+        <button className={tab === "settings" ? "active" : ""} onClick={() => setTab("settings")}>
+          Réglages
         </button>
       </nav>
     </div>
@@ -339,6 +356,20 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
       </form>
       {reply && <p className="card reply">{reply}</p>}
 
+      {data.places.pending.map((arrival) => (
+        <div key={arrival.id} className="card pending">
+          <div>
+            <strong>Arrivée · {arrival.place.name}</strong>
+            <p>Tu restes ?</p>
+          </div>
+          <div className="row">
+            <button onClick={() => act(() => api.answerArrival(arrival.id, "passing"))}>De passage</button>
+            <button className="primary" onClick={() => act(() => api.answerArrival(arrival.id, "present"))}>
+              {ARRIVAL_YES[arrival.place.kind]}
+            </button>
+          </div>
+        </div>
+      ))}
       <BriefingCard briefings={data.briefings} act={act} />
       {data.prayer.hadith && (
         <div className="card hadith">

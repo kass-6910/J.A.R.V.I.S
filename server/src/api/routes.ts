@@ -41,6 +41,10 @@ import {
 } from "../services/budget.js";
 import { EXPENSE_CATEGORIES, parseEuros } from "../budget/rules.js";
 import { addGarment, getGarment, listGarments, PHOTO_DIR, removeGarment, todayOutfit } from "../services/wardrobe.js";
+import { answerLocation, currentPlace, listPlaces, pendingArrivals, recordLocation, updatePlace } from "../services/places.js";
+import { isCalendarConfigured } from "../connectors/google/calendar.js";
+import { isNotifyConfigured } from "../connectors/notifications/ntfy.js";
+import { isMapsConfigured } from "../connectors/maps/routes.js";
 import { config } from "../config.js";
 import { createReadStream } from "node:fs";
 import { basename, join, resolve } from "node:path";
@@ -313,6 +317,53 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
   app.delete("/subscriptions/:id", async (req, reply) => {
     await removeSubscription(idParams.parse(req.params).id);
     return reply.code(204).send();
+  });
+
+  /** Écran Réglages : état des connexions et préférences (réglées dans le .env du serveur). */
+  app.get("/settings", async () => {
+    const lastHealth = await db.query.healthDays.findFirst({ orderBy: (h, { desc }) => desc(h.updatedAt) });
+    const mail = mailStatus();
+    return {
+      connections: [
+        { key: "google", label: "Google Agenda et Gmail", status: isCalendarConfigured() ? (mail.gmail === "configured" ? "connected" : "partial") : "missing" },
+        { key: "outlook", label: "Outlook de l'école", status: mail.outlook === "configured" ? "connected" : "missing" },
+        { key: "manageo", label: "Manageo", status: isManageoConfigured() ? "connected" : "missing" },
+        { key: "health", label: "Apple Watch et Santé", status: lastHealth ? "connected" : "missing", detail: lastHealth ? `données du ${lastHealth.day}` : null },
+        { key: "notifications", label: "Notifications (ntfy)", status: isNotifyConfigured() ? "connected" : "missing" },
+        { key: "maps", label: "Trajets (Google Maps)", status: isMapsConfigured() && config.HOME_ADDRESS ? "connected" : isMapsConfigured() ? "partial" : "missing" },
+      ],
+      preferences: {
+        prayerMethod: config.PRAYER_ENABLED ? config.PRAYER_METHOD : null,
+        budgetMonthlyEur: config.BUDGET_MONTHLY_EUR,
+        mealKcal: config.MEAL_KCAL_TARGET,
+        sportPerWeek: config.SPORT_SESSIONS_PER_WEEK,
+        travelMode: config.TRAVEL_MODE,
+        briefingTime: config.BRIEFING_TIME,
+        eveningTime: config.EVENING_TIME,
+      },
+    };
+  });
+
+  // --- Lieux et trajets ---
+  /** Appelé par l'automatisation « Arrivée » ou « Départ » de l'iPhone. */
+  app.post("/events/location", async (req) => {
+    const body = z.object({ lieu: z.string().trim().min(1), evenement: z.enum(["arrivee", "depart"]) }).parse(req.body);
+    const { place, event } = await recordLocation(body.lieu, body.evenement);
+    return { lieu: place.name, evenement: event.event, statut: event.status };
+  });
+
+  app.get("/places", async () => ({ places: await listPlaces(), here: await currentPlace(), pending: await pendingArrivals() }));
+
+  app.patch("/places/:slug", async (req) => {
+    const { slug } = z.object({ slug: z.string() }).parse(req.params);
+    const body = z.object({ name: z.string().trim().min(1).optional(), address: z.string().trim().max(300).nullable().optional() }).parse(req.body);
+    return updatePlace(slug, body);
+  });
+
+  app.post("/location/:id/answer", async (req) => {
+    const { id } = idParams.parse(req.params);
+    const { answer } = z.object({ answer: z.enum(["present", "passing"]) }).parse(req.body);
+    return { message: await answerLocation(id, answer) };
   });
 
   // --- Garde-robe ---

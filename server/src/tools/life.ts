@@ -29,6 +29,7 @@ import { addExpense, addSubscription, listSubscriptions, monthBudget } from "../
 import { EXPENSE_CATEGORIES, formatEuros } from "../budget/rules.js";
 import { SPACE_SLUGS } from "../db/client.js";
 import { todayOutfit } from "../services/wardrobe.js";
+import { answerLocation, describeCurrentPlace, recordLocation, updatePlace } from "../services/places.js";
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date AAAA-MM-JJ");
 const id = z.string().uuid().describe("Identifiant entre crochets, donné par life_overview ou le contexte.");
@@ -41,7 +42,8 @@ export async function describeLifeContext(): Promise<string[]> {
     listAdminDeadlines(),
     contactNews(7),
   ]);
-  const lines = [`Courses : ${shopping.toBuy.length} article(s) à acheter.`];
+  const here = await describeCurrentPlace();
+  const lines = [...(here ? [here] : []), `Courses : ${shopping.toBuy.length} article(s) à acheter.`];
   if (pills.length > 0) {
     lines.push(
       `Compléments du jour : ${pills.map((p) => `${p.supplement.name} [${p.supplement.id}] ${p.takenAt ? "pris" : `à ${formatDateTime(new Date(p.at)).split(" à ")[1]}`}`).join(", ")}.`,
@@ -351,6 +353,28 @@ export function lifeTools() {
         const outfit = await todayOutfit({ refresh: input.refresh });
         if (!outfit) return "La garde-robe est vide : Jessim ajoute ses vêtements en photo dans l'application.";
         return `Tenue (${outfit.reason}) : ${outfit.items.map((i) => i.label).join(", ")}.${outfit.sportBag ? ` Sac de sport : ${outfit.sportBag.label}.` : ""}`;
+      },
+    }),
+    betaZodTool({
+      name: "set_presence",
+      description:
+        "Jessim dit où il est (« je suis à la salle », « j'arrive à la boutique de la Croix-Rousse ») : présence confirmée, avec l'action du lieu (séance démarrée, alertes de la boutique, journée recalée).",
+      inputSchema: z.object({ place: z.string().describe("Lieu enregistré : salle, lmdd-confluence, lmdd-croix-rousse, ecole, maison.") }),
+      run: async (input) => {
+        const { event } = await recordLocation(input.place, "arrivee");
+        const message = await answerLocation(event.id, "present");
+        await logExecuted("set_presence", input, message);
+        return message;
+      },
+    }),
+    betaZodTool({
+      name: "place_set_address",
+      description: "Enregistre l'adresse d'un lieu (maison, boutique, école, salle) : elle sert de point de départ pour les temps de trajet.",
+      inputSchema: z.object({ place: z.string(), address: z.string().min(3) }),
+      run: async (input) => {
+        const place = await updatePlace(input.place, { address: input.address });
+        await logExecuted("place_set_address", input, `Adresse : ${place.name}`);
+        return `Adresse de ${place.name} enregistrée.`;
       },
     }),
   ];

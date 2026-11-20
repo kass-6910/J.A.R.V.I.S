@@ -13,6 +13,7 @@ import { pool } from "./db/client.js";
 import { mailStatus } from "./services/mails.js";
 import { verify } from "./lib/signing.js";
 import { markIntakeTaken } from "./services/life.js";
+import { answerLocation } from "./services/places.js";
 import { isManageoConfigured } from "./services/manageo.js";
 import { NotFoundError } from "./services/tasks.js";
 
@@ -54,6 +55,13 @@ export async function buildApp(): Promise<FastifyInstance> {
     if (!verify(`/api/public/intakes/${id}/taken`, sig)) return reply.code(403).send({ error: "Lien invalide." });
     await markIntakeTaken(id);
     return { ok: true };
+  });
+
+  app.post("/api/public/location/:id/:answer", async (req, reply) => {
+    const { id, answer } = z.object({ id: z.string().uuid(), answer: z.enum(["present", "passing"]) }).parse(req.params);
+    const { sig } = z.object({ sig: z.string() }).parse(req.query);
+    if (!verify(`/api/public/location/${id}/${answer}`, sig)) return reply.code(403).send({ error: "Lien invalide." });
+    return { message: await answerLocation(id, answer) };
   });
 
   await app.register(

@@ -8,6 +8,7 @@ export interface CalendarEvent {
   start: Date;
   end: Date;
   allDay: boolean;
+  location: string | null;
 }
 
 export const isCalendarConfigured = isGoogleConfigured;
@@ -15,6 +16,7 @@ export const isCalendarConfigured = isGoogleConfigured;
 interface GoogleEvent {
   id: string;
   summary?: string;
+  location?: string;
   status?: string;
   transparency?: string;
   start: { dateTime?: string; date?: string };
@@ -53,6 +55,7 @@ async function listCalendar(calendarId: string, from: Date, to: Date): Promise<C
         start: new Date(start),
         end: new Date(end),
         allDay: !item.start.dateTime,
+        location: item.location?.trim() || null,
       });
     }
     pageToken = body.nextPageToken;

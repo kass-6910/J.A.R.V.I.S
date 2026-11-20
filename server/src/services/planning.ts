@@ -7,6 +7,7 @@ import { scheduleBlocks } from "../db/schema.js";
 import { atTime, now } from "../lib/time.js";
 import { planDay, type Interval } from "../planner/schedule.js";
 import { sportSessionFor, sportWeek } from "./health.js";
+import { travelIntervals } from "./travel.js";
 import { ensurePrayerBlocks } from "./prayer.js";
 import { getMeals, mealTimes } from "./meals.js";
 import { MEAL_DURATION_MIN, MEAL_LABEL, type MealSlot } from "../meals/rules.js";
@@ -169,7 +170,8 @@ export async function replanToday(): Promise<DayPlan> {
   );
   const keptIds = new Set(inProgress.map((b) => b.taskId));
   const fixed = existing.filter((b) => !isMovable(b));
-  const busy = [...eventIntervals(events), ...[...fixed, ...inProgress].map(toInterval)];
+  // Le temps de trajet vers les rendez-vous est bloqué, quand il est connu.
+  const busy = [...eventIntervals(events), ...(await travelIntervals(events)), ...[...fixed, ...inProgress].map(toInterval)];
 
   // Repas principaux d'abord (la collation attend de savoir où tombe la séance), puis le sport.
   const started = new Set(

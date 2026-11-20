@@ -421,3 +421,31 @@ export const outfits = pgTable("outfits", {
   weather: jsonb().$type<{ minC: number; maxC: number; rainChance: number; summary: string } | null>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** Lieux enregistrés : l'iPhone signale l'arrivée et le départ (pas de suivi permanent). */
+export const places = pgTable("places", {
+  id: uuid().primaryKey().defaultRandom(),
+  /** Nom court utilisé par le Raccourci : « salle », « lmdd-confluence », « ecole », « maison »… */
+  slug: text().notNull().unique(),
+  name: text().notNull(),
+  kind: text({ enum: ["salle", "boutique", "ecole", "maison", "autre"] }).notNull(),
+  /** Espace concerné (boutique, école), pour afficher ses alertes à l'arrivée. */
+  space: text(),
+  address: text(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Arrivées et départs ; seule une présence confirmée déclenche une action. */
+export const locationEvents = pgTable("location_events", {
+  id: uuid().primaryKey().defaultRandom(),
+  placeId: uuid("place_id")
+    .notNull()
+    .references(() => places.id, { onDelete: "cascade" }),
+  event: text({ enum: ["arrivee", "depart"] }).notNull(),
+  at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+  /** pending : en attente de réponse ; present : « je suis là pour… » ; passing : « de passage ». */
+  status: text({ enum: ["pending", "present", "passing", "recorded"] }).notNull(),
+  answeredAt: timestamp("answered_at", { withTimezone: true }),
+  /** Séance démarrée à la salle, terminée au départ. */
+  workoutId: uuid("workout_id"),
+});

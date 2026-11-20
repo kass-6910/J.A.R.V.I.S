@@ -781,3 +781,54 @@ nav button.active {
 .expense .what {
   overflow-wrap: break-word;
 }
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.settings-row .what input {
+  margin-top: 6px;
+}
+
+.status {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.status i {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.status.connected i {
+  background: var(--success);
+}
+
+.status.partial i {
+  background: var(--warning);
+}
+
+.accent-note {
+  margin-top: 14px;
+  color: var(--accent);
+  font-size: 14px;
+}
+
+.logout {
+  margin-top: 24px;
+  width: 100%;
+  color: var(--critical);
+}
+
+nav button {
+  font-size: 12px;
+}

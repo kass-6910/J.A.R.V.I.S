@@ -20,12 +20,14 @@ Ces services n'étaient pas joignables depuis l'environnement de développement 
 - [ ] Horaires de prière (Aladhan) : vérifier les heures du jour pour Lyon et la méthode de calcul choisie.
 - [ ] Rappel du jour (collection hadith-api) : vérifier qu'un hadith arrive bien avec son recueil et son numéro.
 - [ ] Météo (Open-Meteo) : vérifier la prévision du jour pour Lyon.
+- [ ] Trajets (API Routes de Google Maps) : vérifier un temps de trajet en TCL et en voiture.
 - [ ] Gmail, Outlook de l'école, Google Agenda, ntfy, Claude : premier vrai passage de chaque connecteur.
 
 ## Vie quotidienne
 
 - [ ] Drive : choisir le site du drive (cahier, §16), puis automatiser le remplissage du panier depuis la liste de courses ; le paiement reste validé par Jessim.
-- [ ] `PUBLIC_URL` doit être renseigné pour que le bouton « Pris » des notifications de compléments apparaisse.
+- [ ] `PUBLIC_URL` doit être renseigné pour que les boutons des notifications apparaissent (« Pris », « Je suis là »).
+- [ ] Créer les automatisations d'arrivée et de départ sur l'iPhone (`shortcuts/localisation.md`) et renseigner les adresses des lieux.
 
 ## Options hors V1 (cahier des charges)
 

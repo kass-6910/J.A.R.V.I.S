@@ -14,6 +14,7 @@ import { lifeFacts } from "./life.js";
 import { mealFacts } from "./meals.js";
 import { budgetFacts } from "./budget.js";
 import { outfitFacts } from "./wardrobe.js";
+import { travelFacts } from "./travel.js";
 import { describeHadith, getDailyHadith } from "./prayer.js";
 import { anyMailboxConfigured, listMails, type Mail } from "./mails.js";
 import { previewDay, replanToday } from "./planning.js";
@@ -98,12 +99,18 @@ async function morningFacts(day: DateTime): Promise<string> {
     manageoFacts(),
     lifeFacts("morning"),
   ]);
-  const [meals, budget, outfit] = await Promise.all([mealFacts(), budgetFacts("morning"), outfitFacts()]);
+  const [meals, budget, outfit, travel] = await Promise.all([
+    mealFacts(),
+    budgetFacts("morning"),
+    outfitFacts(),
+    travelFacts(plan.events),
+  ]);
   return [
     `Nous sommes ${day.setLocale("fr").toFormat("cccc d LLLL yyyy")}.`,
     ...describeReview("Hier", yesterdayReview),
     ...health,
     describePlan(plan),
+    ...travel,
     ...meals,
     ...outfit,
     ...section("Échéances dans les deux jours", deadlines),

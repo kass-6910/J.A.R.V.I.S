@@ -2,8 +2,10 @@ import { buildApp } from "./app.js";
 import { config } from "./config.js";
 import { pool, prepareDatabase } from "./db/client.js";
 import { startScheduler } from "./jobs/scheduler.js";
+import { ensureDefaultPlaces } from "./services/places.js";
 
 await prepareDatabase();
+await ensureDefaultPlaces();
 const app = await buildApp();
 await app.listen({ port: config.PORT, host: config.HOST });
 const stopScheduler = startScheduler();

@@ -215,6 +215,33 @@ export interface TodayOutfit {
   reason: string;
 }
 
+export interface Place {
+  id: string;
+  slug: string;
+  name: string;
+  kind: "salle" | "boutique" | "ecole" | "maison" | "autre";
+  address: string | null;
+}
+
+export interface PlacesInfo {
+  places: Place[];
+  here: { place: Place; since: string } | null;
+  pending: { id: string; at: string; place: Place }[];
+}
+
+export interface Settings {
+  connections: { key: string; label: string; status: "connected" | "partial" | "missing"; detail?: string | null }[];
+  preferences: {
+    prayerMethod: number | null;
+    budgetMonthlyEur: number;
+    mealKcal: number;
+    sportPerWeek: number;
+    travelMode: "TRANSIT" | "DRIVE";
+    briefingTime: string;
+    eveningTime: string;
+  };
+}
+
 export interface PendingAction {
   id: string;
   tool: string;
@@ -273,6 +300,11 @@ export const api = {
   checkShopping: (id: string, checked: boolean) => call<ShoppingItem>("POST", `/shopping/${id}/check`, { checked }),
   life: () => call<LifeOverview>("GET", "/life"),
   budget: () => call<Budget>("GET", "/budget"),
+  places: () => call<PlacesInfo>("GET", "/places"),
+  setPlaceAddress: (slug: string, address: string) => call<Place>("PATCH", `/places/${slug}`, { address }),
+  answerArrival: (id: string, answer: "present" | "passing") =>
+    call<{ message: string }>("POST", `/location/${id}/answer`, { answer }),
+  settings: () => call<Settings>("GET", "/settings"),
   wardrobe: () => call<{ items: Garment[]; outfit: TodayOutfit | null }>("GET", "/wardrobe"),
   addGarment: (image: string, mediaType: string) => call<Garment>("POST", "/wardrobe", { image, mediaType }),
   removeGarment: (id: string) => call<void>("DELETE", `/wardrobe/${id}`),

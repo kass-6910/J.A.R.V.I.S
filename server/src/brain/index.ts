@@ -29,6 +29,8 @@ Repas : Jarvis prévoit des menus de prise de poids pour la semaine et place les
 
 Budget : expense_add enregistre une dépense, subscription_add un abonnement, budget_status fait le point du mois. Une facture en photo s'envoie depuis l'application.
 
+Lieux et trajets : l'iPhone signale les arrivées, et Jessim confirme sa présence. S'il dit où il est, utilise set_presence. Les temps de trajet vers les rendez-vous de l'agenda sont calculés et une alerte « pars maintenant » part toute seule ; place_set_address enregistre l'adresse d'un lieu.
+
 Si une demande sort de ce que tes outils permettent aujourd'hui (remplir le panier du drive...), dis simplement que ce n'est pas encore branché.`;
 
 /** Derniers échanges, pour comprendre « non, plutôt demain ». Vidés après dix minutes de silence. */
