@@ -178,6 +178,27 @@ export interface MealPlan {
   proteinG: number;
 }
 
+export interface Expense {
+  id: string;
+  spentOn: string;
+  amountCents: number;
+  label: string;
+  merchant: string | null;
+  category: string;
+  space: string;
+  source: string;
+  receiptFile: string | null;
+}
+
+export interface Budget {
+  month: string;
+  status: { spent: number; limit: number; projected: number; level: number };
+  byCategory: { category: string; label: string; cents: number }[];
+  professional: { space: string; cents: number }[];
+  expenses: Expense[];
+  subscriptions: { id: string; name: string; amountCents: number; dayOfMonth: number }[];
+}
+
 export interface PendingAction {
   id: string;
   tool: string;
@@ -235,6 +256,11 @@ export const api = {
   addShopping: (name: string) => call<ShoppingItem>("POST", "/shopping", { name }),
   checkShopping: (id: string, checked: boolean) => call<ShoppingItem>("POST", `/shopping/${id}/check`, { checked }),
   life: () => call<LifeOverview>("GET", "/life"),
+  budget: () => call<Budget>("GET", "/budget"),
+  addExpense: (amount: string, label: string, category: string) =>
+    call<Expense>("POST", "/expenses", { amount, label, category }),
+  addReceipt: (image: string, mediaType: string) => call<Expense>("POST", "/expenses/photo", { image, mediaType }),
+  removeExpense: (id: string) => call<void>("DELETE", `/expenses/${id}`),
   meals: () =>
     call<{ meals: MealPlan[]; target: { kcal: number; sportToday: boolean } }>("GET", "/meals"),
   supplementTaken: (id: string) => call<unknown>("POST", `/supplements/${id}/taken`),

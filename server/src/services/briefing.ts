@@ -12,6 +12,7 @@ import { healthFacts } from "./health.js";
 import { manageoFacts } from "./manageo.js";
 import { lifeFacts } from "./life.js";
 import { mealFacts } from "./meals.js";
+import { budgetFacts } from "./budget.js";
 import { describeHadith, getDailyHadith } from "./prayer.js";
 import { anyMailboxConfigured, listMails, type Mail } from "./mails.js";
 import { previewDay, replanToday } from "./planning.js";
@@ -96,7 +97,7 @@ async function morningFacts(day: DateTime): Promise<string> {
     manageoFacts(),
     lifeFacts("morning"),
   ]);
-  const meals = await mealFacts();
+  const [meals, budget] = await Promise.all([mealFacts(), budgetFacts("morning")]);
   return [
     `Nous sommes ${day.setLocale("fr").toFormat("cccc d LLLL yyyy")}.`,
     ...describeReview("Hier", yesterdayReview),
@@ -108,6 +109,7 @@ async function morningFacts(day: DateTime): Promise<string> {
     ...mailLines,
     ...shops,
     ...life,
+    ...budget,
     ...(hadith ? [`Rappel du jour, à lire mot pour mot avec sa référence : ${describeHadith(hadith)}`] : []),
   ].join("\n");
 }
@@ -135,6 +137,7 @@ async function eveningFacts(day: DateTime): Promise<string> {
     ...mailLines,
     ...shops,
     ...life,
+    ...(await budgetFacts("evening")),
   ];
 
   // Le dimanche soir, bilan de la semaine et comparaison avec la précédente.

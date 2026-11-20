@@ -9,6 +9,7 @@ import { checkMailboxes } from "../services/mails.js";
 import { checkManageo } from "../services/manageo.js";
 import { runDailyLife, runSupplements } from "../services/life.js";
 import { ensureMealPlan } from "../services/meals.js";
+import { chargeSubscriptions, checkBudgetAlert } from "../services/budget.js";
 import { notifyUpcomingPrayers, prefetchPrayerData } from "../services/prayer.js";
 import { sendDueReminders } from "../services/reminders.js";
 import { dueRoutines, isIntervalDue } from "./routines.js";
@@ -78,6 +79,14 @@ const JOBS: Job[] = [
   { name: "prière : notifications", run: notifyUpcomingPrayers },
   { name: "vie quotidienne", run: runDailyLife, everyMs: 5 * 60_000 },
   { name: "menus de la semaine", run: ensureMealPlan, everyMs: 60 * 60_000 },
+  {
+    name: "budget : abonnements et alertes",
+    run: async () => {
+      await chargeSubscriptions();
+      await checkBudgetAlert();
+    },
+    everyMs: 60 * 60_000,
+  },
   { name: "compléments", run: runSupplements },
 ];
 

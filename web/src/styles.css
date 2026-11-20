@@ -668,3 +668,50 @@ nav button.active {
 .slot.meal {
   border-left: 3px solid var(--success);
 }
+
+.budget {
+  display: grid;
+  gap: 10px;
+}
+
+.bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+.bar i.warn {
+  background: var(--warning);
+}
+
+.bar i.over {
+  background: var(--critical);
+}
+
+.button-like {
+  display: grid;
+  place-items: center;
+  min-height: 44px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.button-like.disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.amount {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}

@@ -25,6 +25,9 @@ import { addShoppingItem, listShopping } from "../services/shopping.js";
 import { describeMeal, getMeals, regenerateMeals, todayTarget } from "../services/meals.js";
 import { replanToday } from "../services/planning.js";
 import { now } from "../lib/time.js";
+import { addExpense, addSubscription, listSubscriptions, monthBudget } from "../services/budget.js";
+import { EXPENSE_CATEGORIES, formatEuros } from "../budget/rules.js";
+import { SPACE_SLUGS } from "../db/client.js";
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date AAAA-MM-JJ");
 const id = z.string().uuid().describe("Identifiant entre crochets, donné par life_overview ou le contexte.");
@@ -250,8 +253,12 @@ export function lifeTools() {
     }),
     betaZodTool({
       name: "life_remove",
-      description: "Demande la suppression d'un soin, complément, échéance ou proche. Comme toute suppression, elle attend la validation de Jessim.",
-      inputSchema: z.object({ type: z.enum(["soin", "complement", "administratif", "proche"]), item_id: id, label: z.string().describe("Nom de l'élément, pour la validation.") }),
+      description: "Demande la suppression d'un soin, complément, échéance, proche, dépense ou abonnement. Comme toute suppression, elle attend la validation de Jessim.",
+      inputSchema: z.object({
+        type: z.enum(["soin", "complement", "administratif", "proche", "depense", "abonnement"]),
+        item_id: id,
+        label: z.string().describe("Nom de l'élément, pour la validation."),
+      }),
       run: async (input) => {
         await requestValidation("life_remove", { type: input.type, item_id: input.item_id }, `Supprimer ${input.type} « ${input.label} »`);
         return `Suppression de « ${input.label} » en attente : Jessim doit la valider dans l'application.`;
@@ -282,6 +289,56 @@ export function lifeTools() {
         await logExecuted("regenerate_menu", input, `Menus refaits du ${input.from} au ${input.to}`);
         await replanToday();
         return `Menus refaits (${meals.length} repas), ingrédients ajoutés aux courses.`;
+      },
+    }),
+    betaZodTool({
+      name: "expense_add",
+      description:
+        "Enregistre une dépense (« j'ai dépensé 23 € au resto »). Perso par défaut ; pour une dépense d'une boutique ou de Manageo, donne l'espace.",
+      inputSchema: z.object({
+        amount_eur: z.number().positive(),
+        label: z.string().min(1),
+        category: z.enum(EXPENSE_CATEGORIES),
+        spent_on: day.optional(),
+        space: z.enum(SPACE_SLUGS).optional(),
+      }),
+      run: async (input) => {
+        const e = await addExpense({
+          amountCents: Math.round(input.amount_eur * 100),
+          label: input.label,
+          category: input.category,
+          spentOn: input.spent_on,
+          space: input.space,
+          source: "voix",
+        });
+        await logExecuted("expense_add", input, `Dépense : ${e.label} ${formatEuros(e.amountCents)}`);
+        const { status } = await monthBudget();
+        return `Dépense enregistrée. Ce mois : ${formatEuros(status.spent)}${status.limit > 0 ? ` sur ${formatEuros(status.limit)}` : ""}.`;
+      },
+    }),
+    betaZodTool({
+      name: "subscription_add",
+      description: "Ajoute un abonnement prélevé chaque mois (« Netflix 13,49 € le 5 du mois ») : il est compté automatiquement dans le budget.",
+      inputSchema: z.object({ name: z.string().min(1), amount_eur: z.number().positive(), day_of_month: z.number().int().min(1).max(31) }),
+      run: async (input) => {
+        const sub = await addSubscription({ name: input.name, amountCents: Math.round(input.amount_eur * 100), dayOfMonth: input.day_of_month });
+        await logExecuted("subscription_add", input, `Abonnement : ${sub.name}`);
+        return `Abonnement « ${sub.name} » ajouté, ${formatEuros(sub.amountCents)} le ${sub.dayOfMonth} de chaque mois.`;
+      },
+    }),
+    betaZodTool({
+      name: "budget_status",
+      description: "Donne le point budget du mois : total dépensé, plafond, projection de fin de mois, postes principaux, abonnements, dépenses pro.",
+      inputSchema: z.object({ month: z.string().regex(/^\d{4}-\d{2}$/).optional() }),
+      run: async (input) => {
+        const b = await monthBudget(input.month);
+        const subs = await listSubscriptions();
+        return [
+          `Mois ${b.month} : ${formatEuros(b.status.spent)} dépensés${b.status.limit > 0 ? ` sur ${formatEuros(b.status.limit)}` : " (pas de plafond réglé)"}, projection ${formatEuros(b.status.projected)}.`,
+          ...b.byCategory.map((c) => `- ${c.label} : ${formatEuros(c.cents)}`),
+          `Abonnements : ${subs.length === 0 ? "aucun" : subs.map((x) => `${x.name} [${x.id}] ${formatEuros(x.amountCents)} le ${x.dayOfMonth}`).join(", ")}.`,
+          ...b.professional.map((p) => `Dépenses pro ${p.space} : ${formatEuros(p.cents)}`),
+        ].join("\n");
       },
     }),
   ];

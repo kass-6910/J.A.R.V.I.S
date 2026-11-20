@@ -365,3 +365,36 @@ export const mealPlans = pgTable(
   },
   (t) => [uniqueIndex("meal_plans_day_slot_idx").on(t.day, t.slot)],
 );
+
+/** Dépenses : perso (budget du mois) ou professionnelles (rattachées à une boutique ou à Manageo). */
+export const expenses = pgTable(
+  "expenses",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    spentOn: date("spent_on").notNull(),
+    amountCents: integer("amount_cents").notNull(),
+    label: text().notNull(),
+    merchant: text(),
+    category: text().notNull(),
+    /** Espace : vie-perso compte dans le budget du mois ; les autres sont des dépenses pro. */
+    space: text().notNull().default("vie-perso"),
+    source: text({ enum: ["voix", "app", "photo", "abonnement"] }).notNull(),
+    receiptFile: text("receipt_file"),
+    subscriptionId: uuid("subscription_id"),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index("expenses_spent_on_idx").on(t.spentOn),
+    // Un abonnement n'est compté qu'une fois par mois.
+    uniqueIndex("expenses_subscription_month_idx").on(t.subscriptionId, t.spentOn).where(sql`subscription_id is not null`),
+  ],
+);
+
+export const subscriptions = pgTable("subscriptions", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  amountCents: integer("amount_cents").notNull(),
+  dayOfMonth: integer("day_of_month").notNull(),
+  category: text().notNull().default("abonnements"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});

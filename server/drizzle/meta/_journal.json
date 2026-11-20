@@ -57,6 +57,13 @@
       "when": 1795196528367,
       "tag": "0007_flashy_human_fly",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795196784918,
+      "tag": "0008_right_molten_man",
+      "breakpoints": true
     }
   ]
 }

@@ -47,6 +47,10 @@ const schema = z.object({
   MEAL_KCAL_TARGET: z.coerce.number().int().min(1200).max(6000).default(3000),
   MEAL_PROTEIN_G: z.coerce.number().int().min(30).max(400).default(140),
   MEAL_PREFERENCES: z.string().default("halal (ni porc ni alcool), cuisine simple, moins de 30 minutes en semaine"),
+  /** Plafond des dépenses perso du mois, en euros ; 0 = pas d'alerte. */
+  BUDGET_MONTHLY_EUR: z.coerce.number().min(0).default(0),
+  /** Dossier des fichiers de Jarvis (photos de factures, de vêtements). */
+  DATA_DIR: z.string().default("data"),
   /** Prière : horaires calculés par Aladhan pour Lyon ; méthode 12 = UOIF (France). */
   PRAYER_ENABLED: z.enum(["true", "false"]).default("true").transform((v) => v === "true"),
   PRAYER_LATITUDE: z.coerce.number().default(45.764),

@@ -28,6 +28,21 @@ import {
 } from "../services/life.js";
 import { addShoppingItem, listShopping, removeShoppingItem, setShoppingChecked } from "../services/shopping.js";
 import { getMeals, regenerateMeals, todayTarget } from "../services/meals.js";
+import {
+  addExpense,
+  addReceipt,
+  addSubscription,
+  getExpense,
+  listExpenses,
+  listSubscriptions,
+  monthBudget,
+  removeExpense,
+  removeSubscription,
+} from "../services/budget.js";
+import { EXPENSE_CATEGORIES, parseEuros } from "../budget/rules.js";
+import { config } from "../config.js";
+import { createReadStream } from "node:fs";
+import { basename, join, resolve } from "node:path";
 import { getHealthDay, ingestHealth, logWorkout, sportWeek } from "../services/health.js";
 import { parseHealthAutoExport, parseShortcutHealth } from "../health/ingest.js";
 import { cancelReminder, listUpcomingReminders } from "../services/reminders.js";
@@ -237,6 +252,66 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
   app.post("/manageo/sync", async () => {
     await checkManageo();
     return { configured: isManageoConfigured(), shops: await shopStatuses() };
+  });
+
+  // --- Budget ---
+  app.get("/budget", async (req) => {
+    const { month } = z.object({ month: z.string().regex(/^\d{4}-\d{2}$/).optional() }).parse(req.query);
+    const budget = await monthBudget(month);
+    const [list, subs] = await Promise.all([listExpenses(budget.month), listSubscriptions()]);
+    return { ...budget, expenses: list, subscriptions: subs };
+  });
+
+  app.post("/expenses", async (req, reply) => {
+    const body = z
+      .object({
+        amount: z.union([z.number(), z.string()]),
+        label: z.string().trim().min(1).max(100),
+        category: z.enum(EXPENSE_CATEGORIES).default("autre"),
+        spentOn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        space: z.enum(SPACE_SLUGS).optional(),
+      })
+      .parse(req.body);
+    const expense = await addExpense({ ...body, amountCents: parseEuros(body.amount), source: "app" });
+    return reply.code(201).send(expense);
+  });
+
+  /** Facture en photo (base64) : lue par Claude, classée et enregistrée. */
+  app.post("/expenses/photo", { bodyLimit: 15 * 1024 * 1024 }, async (req, reply) => {
+    const body = z
+      .object({
+        image: z.string().min(100),
+        mediaType: z.enum(["image/jpeg", "image/png", "image/webp", "image/gif"]),
+      })
+      .parse(req.body);
+    const result = await addReceipt(body.image.replace(/^data:[^,]+,/, ""), body.mediaType);
+    return "error" in result ? reply.code(422).send(result) : reply.code(201).send(result.expense);
+  });
+
+  app.get("/expenses/:id/receipt", async (req, reply) => {
+    const { id } = idParams.parse(req.params);
+    const expense = await getExpense(id);
+    if (!expense?.receiptFile) return reply.code(404).send({ error: "Pas de photo pour cette dépense." });
+    const ext = expense.receiptFile.split(".").pop();
+    reply.type(ext === "jpg" ? "image/jpeg" : `image/${ext}`);
+    return reply.send(createReadStream(join(resolve(config.DATA_DIR, "receipts"), basename(expense.receiptFile))));
+  });
+
+  app.delete("/expenses/:id", async (req, reply) => {
+    await removeExpense(idParams.parse(req.params).id);
+    return reply.code(204).send();
+  });
+
+  app.post("/subscriptions", async (req, reply) => {
+    const body = z
+      .object({ name: z.string().trim().min(1).max(100), amount: z.union([z.number(), z.string()]), dayOfMonth: z.number().int().min(1).max(31) })
+      .parse(req.body);
+    return reply.code(201).send(await addSubscription({ name: body.name, amountCents: parseEuros(body.amount), dayOfMonth: body.dayOfMonth }));
+  });
+
+  app.delete("/subscriptions/:id", async (req, reply) => {
+    await removeSubscription(idParams.parse(req.params).id);
+    return reply.code(204).send();
   });
 
   // --- Repas ---

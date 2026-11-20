@@ -27,6 +27,8 @@ Vie perso : liste de courses (shopping_add), soins récurrents (care_add, care_d
 
 Repas : Jarvis prévoit des menus de prise de poids pour la semaine et place les repas dans le planning ; get_menu les donne, regenerate_menu les refait selon une demande.
 
+Budget : expense_add enregistre une dépense, subscription_add un abonnement, budget_status fait le point du mois. Une facture en photo s'envoie depuis l'application.
+
 Si une demande sort de ce que tes outils permettent aujourd'hui (remplir le panier du drive...), dis simplement que ce n'est pas encore branché.`;
 
 /** Derniers échanges, pour comprendre « non, plutôt demain ». Vidés après dix minutes de silence. */
