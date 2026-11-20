@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { api, type Mail, type Space, type SpaceLink, type SpaceSummary, type Task } from "./api";
-import { type Act, MailRow, SpaceDots, TaskRow } from "./components";
+import { api, type Mail, type ShopStatus, type Space, type SpaceLink, type SpaceSummary, type Task } from "./api";
+import { type Act, MailRow, ShopBoard, SpaceDots, TaskRow } from "./components";
 
 function plural(n: number, word: string): string {
   return `${n} ${word}${n > 1 ? "s" : ""}`;
@@ -11,7 +11,17 @@ function plural(n: number, word: string): string {
  * puis le tableau d'un espace quand on le touche.
  * « version » change à chaque rechargement des données : l'écran se recharge avec.
  */
-export function Spaces({ spaces, act, version }: { spaces: Space[]; act: Act; version: unknown }) {
+export function Spaces({
+  spaces,
+  shops,
+  act,
+  version,
+}: {
+  spaces: Space[];
+  shops: ShopStatus[];
+  act: Act;
+  version: unknown;
+}) {
   const [overview, setOverview] = useState<{ spaces: SpaceSummary[]; links: SpaceLink[] } | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [board, setBoard] = useState<{ tasks: Task[]; mails: Mail[] } | null>(null);
@@ -43,6 +53,7 @@ export function Spaces({ spaces, act, version }: { spaces: Space[]; act: Act; ve
             {current.name}
           </h1>
         </header>
+        {shops.find((s) => s.slug === current.slug) && <ShopBoard shop={shops.find((s) => s.slug === current.slug)!} />}
         {!board ? (
           <p className="muted">Chargement…</p>
         ) : (

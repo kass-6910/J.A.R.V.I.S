@@ -1,7 +1,7 @@
 # J.A.R.V.I.S
 
 Assistant vocal personnel : tâches, planning, et plus tard mails, Manageo, santé et le reste.
-Le cahier des charges fait foi ; ce dépôt couvre ses étapes 1 (serveur, base, tâches, planning, voix, web app minimale), 2 (notifications, rappels, briefing du matin, bilan du soir) et 3 (mails, espaces et liens).
+Le cahier des charges fait foi ; ce dépôt couvre ses étapes 1 (serveur, base, tâches, planning, voix, web app minimale), 2 (notifications, rappels, briefing du matin, bilan du soir), 3 (mails, espaces et liens) et 4 (Manageo, santé, prière).
 
 ## Ce qui marche aujourd'hui
 
@@ -15,9 +15,17 @@ Le cahier des charges fait foi ; ce dépôt couvre ses étapes 1 (serveur, base,
 - **Bilan du soir** (21:30 par défaut) : ce qui est fait, ce qui reste, l'aperçu de demain ; le dimanche, le bilan de la semaine avec la tendance. Si Claude est injoignable, une version de secours est rédigée à partir des faits bruts.
 - **Mails** : Gmail et l'Outlook de l'école sont relevés toutes les 15 minutes. Claude Haiku trie chaque mail (important ou non, résumé en une phrase, réponse attendue, espace(s), examen ou rendu annoncé). Les mails importants arrivent en notification, dans le contexte de Jarvis et dans le briefing. Jarvis peut lire un mail et proposer une réponse : elle part seulement après validation dans la web app, dans le fil d'origine. Jarvis ne supprime ni ne déplace jamais rien dans la boîte mail. Si Claude est injoignable, le mail est retenté puis classé par un tri de secours.
 - **Espaces et liens** : tâches et mails sont rangés dans les cinq espaces. Une tâche saisie sans espace dans l'app est classée par Claude Haiku (ou laissée sans espace en cas de doute). Un élément rangé dans plusieurs espaces apparaît comme lien.
-- **Web app** : écrans Accueil (briefing, validations, rappels, mails à suivre, journée), Tâches et Espaces (tableau de chaque espace, liens entre espaces), installable sur l'écran d'accueil de l'iPhone. Un bouton micro permet de parler à Jarvis, qui répond à voix haute (dictée et voix du navigateur, il faut être en HTTPS).
+- **Boutiques LMDD (Manageo)** : relevé toutes les 15 minutes par une API dédiée, en lecture seule (`docs/manageo-api.md`).
+  - Alerte dès qu'un article passe sous son seuil.
+  - Rupture prévue d'après la vitesse des ventes des quatorze derniers jours (« plus de café dans 2 jours »).
+  - Bon de commande pré-rempli par fournisseur, à valider ; une fois validé, la tâche « Passer la commande » est créée.
+  - Trous dans le planning de l'équipe (heures d'ouverture sans personne, absences comprises), avec qui appeler.
+  - Chiffre d'affaires de la veille comparé à la semaine précédente, dans le briefing.
+- **Santé** : sommeil, pas, calories et séances reçus de l'iPhone (Health Auto Export ou Raccourci, voir `shortcuts/sante.md`). Trois séances de sport par semaine sont placées dans la journée, espacées d'un jour de repos et allégées après une nuit courte. Jessim peut déclarer une séance à la voix ou dans l'app.
+- **Prière** : horaires du jour calculés pour Lyon (Aladhan, méthode réglable), placés dans le planning comme créneaux protégés, avec une notification avant chaque prière. Le rappel du jour est un hadith tiré d'un recueil publié, cité avec son numéro, jamais rédigé par l'IA.
+- **Web app** : écrans Accueil (briefing, rappel du jour, validations, alertes des boutiques, rappels, mails à suivre, journée), Tâches, Espaces (tableau de chaque espace avec la section Manageo des boutiques, liens entre espaces) et Santé, installable sur l'écran d'accueil de l'iPhone. Un bouton micro permet de parler à Jarvis, qui répond à voix haute (dictée et voix du navigateur, il faut être en HTTPS).
 
-Pas encore là : Manageo, santé, transcription côté serveur (Whisper), écriture dans Google Agenda (l'agenda est lu, jamais modifié).
+Pas encore là : repas, compléments, soins perso, courses et drive, garde-robe, administratif, trajets, budget, proches, localisation, santé, transcription côté serveur (Whisper), écriture dans Google Agenda (l'agenda est lu, jamais modifié).
 
 ## Démarrer
 
@@ -79,6 +87,10 @@ npm run outlook:auth -w server
 
 La commande affiche un code à saisir sur le site de Microsoft, puis la ligne `MS_REFRESH_TOKEN=` à copier dans `.env`. L'école peut bloquer les applications externes : son accord est alors nécessaire.
 
+## Brancher Manageo
+
+Manageo doit d'abord exposer l'API décrite dans `docs/manageo-api.md` et créer une clé dédiée à Jarvis. Ensuite, `MANAGEO_URL` et `MANAGEO_API_KEY` suffisent.
+
 ## Brancher les notifications
 
 1. Installer l'app **ntfy** sur l'iPhone.
@@ -102,15 +114,17 @@ Avec le service public ntfy.sh, les messages (dont le texte du briefing) transit
 | `server/src/planner` | Tri et placement des tâches (fonctions pures, testées) |
 | `server/src/briefing` | Bilan d'une période pour le briefing et le bilan (fonctions pures, testées) |
 | `server/src/jobs` | Planificateur : rappels, alertes d'échéance, briefing et bilan |
-| `server/src/connectors` | Un module par service extérieur : Google (Agenda, Gmail), Microsoft (Outlook), ntfy, et les outils mails communs |
+| `server/src/connectors` | Un module par service extérieur : Google (Agenda, Gmail), Microsoft (Outlook), Manageo, Aladhan et la collection de hadiths, ntfy |
+| `server/src/manageo`, `server/src/health` | Analyse des stocks et du planning de l'équipe, lecture des exports Santé et règles du sport (fonctions pures, testées) |
 | `server/src/db` | Schéma Drizzle ; migrations dans `server/drizzle` |
 | `web` | Web app React |
 | `shortcuts` | Documentation des Raccourcis iPhone |
+| `docs` | Spécification de l'API que Manageo expose à Jarvis |
 
 ## Commandes
 
 | Commande | Effet |
 |---|---|
-| `npm test` | Tests du planificateur, du bilan, des routines et de la lecture des mails |
+| `npm test` | Tests des fonctions pures : planning, bilan, routines, mails, prière, santé, Manageo |
 | `npm run typecheck` | Vérification des types, serveur et web |
 | `npm run db:generate` | Génère une migration après un changement de `schema.ts` |

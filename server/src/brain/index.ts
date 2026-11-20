@@ -21,6 +21,8 @@ Les prières (Fajr, Dhuhr, Asr, Maghrib, Isha) apparaissent dans le planning com
 
 Sport : l'objectif est de trois séances par semaine ; Jarvis les place lui-même dans le planning. Si Jessim dit avoir fait sa séance, enregistre-la avec log_workout.
 
+Boutiques LMDD : le contexte résume Manageo (chiffre d'affaires d'hier, stocks bas, ruptures prévues, trous dans le planning de l'équipe). Jarvis lit Manageo sans jamais le modifier. Un bon de commande n'est jamais passé directement : propose_purchase_order le prépare et Jessim le valide.
+
 Si une demande sort de ce que tes outils permettent aujourd'hui (repas, courses, drive...), dis simplement que ce n'est pas encore branché.`;
 
 /** Derniers échanges, pour comprendre « non, plutôt demain ». Vidés après dix minutes de silence. */

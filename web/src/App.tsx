@@ -9,6 +9,7 @@ import {
   type Mail,
   type MailStatus,
   type PrayerInfo,
+  type ShopStatus,
   type Reminder,
   type PendingAction,
   type Priority,
@@ -16,7 +17,7 @@ import {
   type Task,
 } from "./api";
 import { canListen, listen, speak, unlockSpeech } from "./voice";
-import { type Act, MailRow, PRIORITY_LABEL, SpaceDots, TaskRow, duration } from "./components";
+import { type Act, MailRow, PRIORITY_LABEL, ShopAlerts, SpaceDots, TaskRow, duration } from "./components";
 import { Health } from "./Health";
 import { Spaces } from "./Spaces";
 
@@ -99,6 +100,7 @@ interface Data {
   mails: Mail[];
   mailStatus: MailStatus;
   prayer: PrayerInfo;
+  shops: ShopStatus[];
 }
 
 const time = (iso: string) =>
@@ -112,7 +114,7 @@ export function App() {
 
   const refresh = useCallback(async () => {
     try {
-      const [spaces, tasks, plan, pending, briefings, reminders, mails, prayer] = await Promise.all([
+      const [spaces, tasks, plan, pending, briefings, reminders, mails, prayer, shops] = await Promise.all([
         api.spaces(),
         api.tasks(),
         api.planning(),
@@ -121,8 +123,9 @@ export function App() {
         api.reminders(),
         api.mails("?days=3"),
         api.prayer(),
+        api.shops(),
       ]);
-      setData({ spaces, ...tasks, plan, pending, briefings, reminders, mails: mails.mails, mailStatus: mails.status, prayer });
+      setData({ spaces, ...tasks, plan, pending, briefings, reminders, mails: mails.mails, mailStatus: mails.status, prayer, shops: shops.shops });
       setError(null);
     } catch (err) {
       if (err instanceof UnauthorizedError) {
@@ -168,7 +171,7 @@ export function App() {
         ) : tab === "tasks" ? (
           <Tasks data={data} act={act} />
         ) : tab === "spaces" ? (
-          <Spaces spaces={data.spaces} act={act} version={data} />
+          <Spaces spaces={data.spaces} shops={data.shops} act={act} version={data} />
         ) : (
           <Health plan={data.plan} prayer={data.prayer} act={act} version={data} />
         )}
@@ -392,6 +395,14 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
           </ul>
         </>
       )}
+
+      {data.shops.map((shop) => (
+        <ShopAlerts
+          key={shop.slug}
+          shop={shop}
+          pendingOrders={data.pending.filter((p) => p.tool === "purchase_order" && p.summary.includes(shop.name)).length}
+        />
+      ))}
 
       <MailsToWatch data={data} act={act} />
 

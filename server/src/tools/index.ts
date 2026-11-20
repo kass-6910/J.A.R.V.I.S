@@ -13,6 +13,7 @@ import { anyMailboxConfigured, getMail, listMails, proposeReply, setMailHandled 
 import { getDayPlan, replanToday } from "../services/planning.js";
 import { createReminder, getReminder, listUpcomingReminders } from "../services/reminders.js";
 import { logWorkout, sportWeek } from "../services/health.js";
+import { describeShop, isManageoConfigured, manageoFacts, proposeOrders, shopStatus } from "../services/manageo.js";
 import {
   completeTask,
   createTask,
@@ -24,12 +25,13 @@ import {
 
 /** État courant donné à Claude avec chaque demande. */
 export async function describeContext(): Promise<string> {
-  const [open, plan, reminders, mails, week] = await Promise.all([
+  const [open, plan, reminders, mails, week, shops] = await Promise.all([
     listOpenTasks(),
     getDayPlan(now()),
     listUpcomingReminders(),
     anyMailboxConfigured() ? listMails({ days: 3, limit: 40 }) : Promise.resolve(null),
     sportWeek(now()),
+    manageoFacts(),
   ]);
   const toWatch = mails?.filter((m) => m.importance === "high" || m.needsReply).slice(0, 8);
   return [
@@ -40,6 +42,7 @@ export async function describeContext(): Promise<string> {
     `Sport cette semaine : ${week.done} séance(s) sur ${week.target}${week.doneToday ? ", dont une aujourd'hui" : ""}.`,
     "Rappels à venir :",
     ...(reminders.length > 0 ? reminders.map(describeReminder) : ["- aucun"]),
+    ...shops,
     "Mails importants ou en attente de réponse, non traités (trois derniers jours) :",
     ...(toWatch === undefined
       ? ["- aucune boîte mail n'est connectée"]
@@ -310,6 +313,36 @@ ${mail.body}
         const week = await sportWeek(now());
         await replanToday();
         return `Séance enregistrée. Cette semaine : ${week.done} séance(s) sur ${week.target}.`;
+      },
+    }),
+    betaZodTool({
+      name: "shop_status",
+      description:
+        "Donne l'état détaillé d'une boutique LMDD d'après Manageo : chiffre d'affaires d'hier, stocks bas, ruptures prévues, trous dans le planning de l'équipe et qui appeler. Un résumé est déjà dans le contexte.",
+      inputSchema: z.object({ shop: z.enum(["lmdd-confluence", "lmdd-croix-rousse"]) }),
+      run: async (input) => {
+        if (!isManageoConfigured()) return "Manageo n'est pas encore connecté.";
+        const status = await shopStatus(input.shop);
+        if (!status) return "Pas encore de relevé de Manageo pour cette boutique.";
+        const detail = [...status.low, ...status.ruptures].map(
+          (l) => `- ${l.item.name} : ${l.item.qty} ${l.item.unit ?? ""}, ${l.perDay.toFixed(1)} vendu(s) par jour, à commander : ${l.toOrder}${l.item.supplier ? ` chez ${l.item.supplier.name}` : ""}`,
+        );
+        return [...describeShop(status), ...(detail.length ? ["Détail des articles :", ...detail] : [])].join("\n");
+      },
+    }),
+    betaZodTool({
+      name: "propose_purchase_order",
+      description:
+        "Prépare maintenant le bon de commande d'une boutique (un par fournisseur) à partir du stock bas et des ruptures prévues. Rien n'est commandé : chaque bon attend la validation de Jessim dans l'application.",
+      inputSchema: z.object({ shop: z.enum(["lmdd-confluence", "lmdd-croix-rousse"]) }),
+      run: async (input) => {
+        if (!isManageoConfigured()) return "Manageo n'est pas encore connecté.";
+        const status = await shopStatus(input.shop);
+        if (!status) return "Pas encore de relevé de Manageo pour cette boutique.";
+        const orders = await proposeOrders(status, { force: true });
+        return orders.length === 0
+          ? "Rien à commander : aucun article sous le seuil ni en rupture prévue."
+          : `${orders.length} bon(s) de commande en attente de validation : ${orders.map((o) => o.supplier).join(", ")}.`;
       },
     }),
   ];

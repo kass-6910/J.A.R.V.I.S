@@ -2,6 +2,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { actionsLog } from "../db/schema.js";
 import { rejectDraft, sendDraft } from "./mails.js";
+import { rejectOrder, validateOrder } from "./manageo.js";
 import { cancelReminder } from "./reminders.js";
 import { deleteTask, NotFoundError } from "./tasks.js";
 
@@ -17,6 +18,10 @@ const VALIDATED_ACTIONS: Record<string, { confirm: (input: any) => Promise<void>
     confirm: async (input: { reminder_id: string }) => {
       await cancelReminder(input.reminder_id);
     },
+  },
+  purchase_order: {
+    confirm: (input: { order_id: string }) => validateOrder(input.order_id),
+    reject: (input: { order_id: string }) => rejectOrder(input.order_id),
   },
   send_mail: {
     confirm: (input: { draft_id: string }) => sendDraft(input.draft_id),

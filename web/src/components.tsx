@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { api, type Mail, type Priority, type Space, type Task } from "./api";
+import { api, type Mail, type Priority, type ShopStatus, type Space, type Task } from "./api";
 
 /** Composants partagés entre les écrans. */
 
@@ -100,5 +100,99 @@ export function MailRow({ mail, spaces, act }: { mail: Mail; spaces: Space[]; ac
         </button>
       </div>
     </li>
+  );
+}
+
+const qty = (n: number, unit: string | null) => `${Math.round(n * 10) / 10}${unit ? ` ${unit}` : ""}`;
+const euros = (n: number) => `${Math.round(n).toLocaleString("fr-FR")} €`;
+
+/** Ce qui demande une action dans une boutique : stock bas, ruptures prévues, trous de planning. */
+export function ShopAlerts({ shop, pendingOrders }: { shop: ShopStatus; pendingOrders: number }) {
+  const gaps = shop.gapsToday;
+  if (shop.low.length === 0 && shop.ruptures.length === 0 && gaps.length === 0) return null;
+  return (
+    <div className="card shop-alert">
+      <strong>
+        {shop.low.length > 0 ? "Stock bas" : shop.ruptures.length > 0 ? "Rupture prévue" : "Planning"} · {shop.name}
+      </strong>
+      {shop.low.length > 0 && (
+        <p>{shop.low.map((l) => `${l.item.name} (${qty(l.item.qty, l.item.unit)})`).join(", ")}</p>
+      )}
+      {shop.ruptures.length > 0 && (
+        <p>
+          {shop.ruptures.map((l) => `${l.item.name} dans ${Math.floor(l.daysLeft ?? 0)} j`).join(", ")}
+        </p>
+      )}
+      {gaps.map((g) => (
+        <p key={`${g.start}-${g.end}`}>
+          Personne de {g.start} à {g.end}
+          {g.absent.length > 0 && ` (${g.absent.join(", ")} absent)`}
+          {g.suggestions.length > 0 ? ` · appeler ${g.suggestions.join(" ou ")}` : " · aucun disponible connu"}
+        </p>
+      ))}
+      {pendingOrders > 0 && (
+        <p className="muted">
+          {pendingOrders > 1 ? `${pendingOrders} commandes proposées` : "Commande proposée"}, à valider ci-dessus
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Section Manageo du tableau d'une boutique. */
+export function ShopBoard({ shop }: { shop: ShopStatus }) {
+  const { yesterday, lastWeek } = shop.sales;
+  const diff = lastWeek.ca > 0 ? Math.round(((yesterday.ca - lastWeek.ca) / lastWeek.ca) * 100) : null;
+  const fetched = new Date(shop.fetchedAt).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Paris",
+  });
+  const lines = [...shop.low, ...shop.ruptures];
+  return (
+    <>
+      <h2>Boutique · Manageo</h2>
+      <div className="card shop-board">
+        <div className="kpi">
+          <span className="muted">Chiffre d'affaires d'hier</span>
+          <span className="kpi-value">{euros(yesterday.ca)}</span>
+          <span className="muted">
+            {yesterday.commandes} commande{yesterday.commandes > 1 ? "s" : ""}
+            {diff !== null && (
+              <span className={diff >= 0 ? "up" : "down"}>
+                {" "}
+                · {diff >= 0 ? "+" : ""}
+                {diff} % vs semaine dernière
+              </span>
+            )}
+          </span>
+        </div>
+        {lines.length > 0 && (
+          <ul className="stock-lines">
+            {lines.map((l) => (
+              <li key={l.item.id}>
+                <span>
+                  {l.item.name}
+                  <span className="muted"> · {qty(l.item.qty, l.item.unit)}</span>
+                </span>
+                <span className={shop.low.includes(l) ? "badge urgent" : "badge high"}>
+                  {shop.low.includes(l) ? "Sous le seuil" : `Rupture dans ${Math.floor(l.daysLeft ?? 0)} j`}
+                </span>
+              </li>
+            ))}
+          </ul>
+        )}
+        {[...shop.gapsToday.map((g) => ["Aujourd'hui", g] as const), ...shop.gapsTomorrow.map((g) => ["Demain", g] as const)].map(
+          ([label, g]) => (
+            <p key={`${g.date}-${g.start}`}>
+              {label} : personne de {g.start} à {g.end}
+              {g.suggestions.length > 0 && <span className="muted"> · disponibles : {g.suggestions.join(", ")}</span>}
+            </p>
+          ),
+        )}
+        {shop.unpublishedWeek && <p className="muted">Planning de la semaine du {shop.unpublishedWeek} pas encore publié.</p>}
+        <p className="muted footnote">Relevé à {fetched}</p>
+      </div>
+    </>
   );
 }

@@ -31,6 +31,12 @@ const schema = z.object({
   MS_CLIENT_ID: z.string().default(""),
   MS_TENANT: z.string().default("organizations"),
   MS_REFRESH_TOKEN: z.string().default(""),
+  /** Manageo : API dédiée à Jarvis (clé en lecture seule), voir docs/manageo-api.md. */
+  MANAGEO_URL: z.string().default(""),
+  MANAGEO_API_KEY: z.string().default(""),
+  /** Facultatif : « lmdd-confluence:12,lmdd-croix-rousse:14 ». Sinon, les boutiques sont reconnues par leur slug. */
+  MANAGEO_SHOPS: z.string().default(""),
+  STOCK_RUPTURE_HORIZON_DAYS: z.coerce.number().int().min(1).max(14).default(3),
   /** Sport : séances par semaine, durée, et heure à partir de laquelle Jarvis préfère les placer. */
   SPORT_SESSIONS_PER_WEEK: z.coerce.number().int().min(0).max(7).default(3),
   SPORT_DURATION_MIN: z.coerce.number().int().min(15).max(180).default(60),

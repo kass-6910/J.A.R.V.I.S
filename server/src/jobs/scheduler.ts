@@ -6,6 +6,7 @@ import { tasks } from "../db/schema.js";
 import { formatTime, now } from "../lib/time.js";
 import { findBriefing, generateBriefing, notifyBriefing } from "../services/briefing.js";
 import { checkMailboxes } from "../services/mails.js";
+import { checkManageo } from "../services/manageo.js";
 import { notifyUpcomingPrayers, prefetchPrayerData } from "../services/prayer.js";
 import { sendDueReminders } from "../services/reminders.js";
 import { dueRoutines, isIntervalDue } from "./routines.js";
@@ -70,6 +71,7 @@ const JOBS: Job[] = [
   { name: "échéances", run: alertDeadlines },
   { name: "briefing et bilan", run: runRoutines },
   { name: "mails", run: async () => void (await checkMailboxes()), everyMs: MAIL_INTERVAL_MS },
+  { name: "Manageo : stocks, ventes, équipe", run: checkManageo, everyMs: 15 * 60_000 },
   { name: "prière : horaires et rappel du jour", run: prefetchPrayerData, everyMs: 60 * 60_000 },
   { name: "prière : notifications", run: notifyUpcomingPrayers },
 ];

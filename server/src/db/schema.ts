@@ -240,3 +240,25 @@ export const workouts = pgTable(
   },
   (t) => [uniqueIndex("workouts_start_type_idx").on(t.startsAt, t.type)],
 );
+
+export interface PurchaseOrderLine {
+  itemId: number;
+  name: string;
+  unit: string | null;
+  qty: number;
+  current: number;
+  reason: string;
+}
+
+/** Bons de commande préparés par Jarvis à partir des stocks Manageo ; validés par Jessim. */
+export const purchaseOrders = pgTable("purchase_orders", {
+  id: uuid().primaryKey().defaultRandom(),
+  shop: text().notNull(),
+  supplier: text().notNull(),
+  lines: jsonb().$type<PurchaseOrderLine[]>().notNull(),
+  /** Articles concernés : un même bon n'est pas reproposé tant que la situation ne change pas. */
+  signature: text().notNull(),
+  status: text({ enum: ["pending", "validated", "rejected", "superseded"] }).notNull().default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+});

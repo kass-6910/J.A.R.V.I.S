@@ -110,8 +110,45 @@ export interface HealthSummary {
   week: { target: number; done: number; doneToday: boolean; days: string[] };
 }
 
+export interface StockLine {
+  item: { id: number; name: string; unit: string | null; qty: number; supplier: { name: string } | null };
+  threshold: number;
+  perDay: number;
+  daysLeft: number | null;
+  ruptureDate: string | null;
+  toOrder: number;
+}
+
+export interface CoverageGap {
+  date: string;
+  start: string;
+  end: string;
+  absent: string[];
+  suggestions: string[];
+}
+
+export interface SalesDay {
+  date: string;
+  ca: number;
+  ca_encaisse: number;
+  commandes: number;
+}
+
+export interface ShopStatus {
+  slug: string;
+  name: string;
+  fetchedAt: string;
+  sales: { yesterday: SalesDay; lastWeek: SalesDay };
+  low: StockLine[];
+  ruptures: StockLine[];
+  gapsToday: CoverageGap[];
+  gapsTomorrow: CoverageGap[];
+  unpublishedWeek: string | null;
+}
+
 export interface PendingAction {
   id: string;
+  tool: string;
   summary: string;
 }
 
@@ -160,6 +197,8 @@ export const api = {
   pendingActions: () => call<PendingAction[]>("GET", "/actions/pending"),
   briefings: () => call<Briefing[]>("GET", "/briefings"),
   prayer: () => call<PrayerInfo>("GET", "/prayer"),
+  shops: () => call<{ configured: boolean; shops: ShopStatus[] }>("GET", "/shops"),
+  syncManageo: () => call<unknown>("POST", "/manageo/sync"),
   healthSummary: () => call<HealthSummary>("GET", "/health/summary"),
   logWorkout: () => call<unknown>("POST", "/health/workouts", {}),
   writeBriefing: (kind: BriefingKind) => call<Briefing>("POST", `/briefings/${kind}`),

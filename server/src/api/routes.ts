@@ -9,6 +9,7 @@ import { listPendingActions, resolveAction } from "../services/actions.js";
 import { generateBriefing, latestBriefing, listBriefings } from "../services/briefing.js";
 import { checkMailboxes, getMail, listMails, mailStatus, setMailHandled } from "../services/mails.js";
 import { getDailyHadith, getPrayerTimes } from "../services/prayer.js";
+import { checkManageo, isManageoConfigured, shopStatuses } from "../services/manageo.js";
 import { getHealthDay, ingestHealth, logWorkout, sportWeek } from "../services/health.js";
 import { parseHealthAutoExport, parseShortcutHealth } from "../health/ingest.js";
 import { cancelReminder, listUpcomingReminders } from "../services/reminders.js";
@@ -209,6 +210,15 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     const workout = await logWorkout(body);
     await replanToday();
     return reply.code(201).send(workout);
+  });
+
+  /** État des boutiques LMDD d'après le dernier relevé de Manageo. */
+  app.get("/shops", async () => ({ configured: isManageoConfigured(), shops: await shopStatuses() }));
+
+  /** Relève Manageo maintenant, sans attendre le planificateur. */
+  app.post("/manageo/sync", async () => {
+    await checkManageo();
+    return { configured: isManageoConfigured(), shops: await shopStatuses() };
   });
 
   /** Horaires de prière du jour et rappel du jour. */

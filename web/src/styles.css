@@ -575,3 +575,54 @@ nav button.active {
   margin-top: 16px;
   font-size: 13px;
 }
+
+.shop-alert {
+  margin-top: 10px;
+  display: grid;
+  gap: 4px;
+  border-color: var(--warning);
+}
+
+.shop-alert strong {
+  font-size: 13px;
+  color: var(--warning);
+}
+
+.shop-board {
+  display: grid;
+  gap: 10px;
+}
+
+.kpi {
+  display: grid;
+  gap: 2px;
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.up {
+  color: var(--success);
+}
+
+.down {
+  color: var(--critical);
+}
+
+.stock-lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.stock-lines li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
