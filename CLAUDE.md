@@ -16,6 +16,9 @@ Assistant personnel de Jessim. Une seule application Node.js (TypeScript, Fastif
 - Un connecteur par service extérieur dans `connectors`, sans dépendance vers le reste, pour rester interchangeable.
 - Après chaque changement de tâche, appeler `replanToday()` : la journée est toujours recalée.
 - Tous les calculs de date passent par `lib/time.ts` (fuseau `TIMEZONE`, Europe/Paris par défaut).
+- Les tâches planifiées vivent dans `jobs/scheduler.ts` (un tour toutes les 30 secondes). La décision « quoi lancer » est une fonction pure dans `jobs/routines.ts`. Chaque tâche planifiée doit être idempotente : le serveur peut redémarrer à tout moment.
+- Les outils de Claude sont construits par demande (`buildTools(session)`) : la session dit si le client sait créer des rappels sur l'iPhone et collecte ceux à lui renvoyer.
+- Toute rédaction par Claude qui tourne sans Jessim (briefing, bilan) a une version de secours sans IA.
 
 ## Règles de sécurité (non négociables)
 
@@ -27,7 +30,7 @@ Assistant personnel de Jessim. Une seule application Node.js (TypeScript, Fastif
 ## IA
 
 - SDK officiel `@anthropic-ai/sdk`, boucle d'outils via `client.beta.messages.toolRunner` et `betaZodTool`.
-- Cerveau : modèle `JARVIS_MODEL` (Claude Sonnet). Tâches de fond futures : Claude Haiku.
+- Client partagé dans `lib/claude.ts`. Cerveau et briefing : modèle `JARVIS_MODEL` (Claude Sonnet), le briefing en effort `low`. Tâches de fond futures : Claude Haiku.
 - Les réponses sont lues à voix haute : courtes, en français, sans markdown.
 - Le contexte du jour est injecté dans le message utilisateur, pas dans le prompt système, qui reste stable.
 

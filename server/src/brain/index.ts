@@ -1,8 +1,7 @@
-import Anthropic from "@anthropic-ai/sdk";
+import type Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config.js";
-import { describeContext, tools } from "../tools/index.js";
-
-const client = new Anthropic();
+import { claude } from "../lib/claude.js";
+import { buildTools, describeContext, type DeviceReminder, type Session } from "../tools/index.js";
 
 const SYSTEM = `Tu es Jarvis, l'assistant personnel de Jessim. Tu l'aides à gérer ses tâches et son planning, et tu allèges sa charge mentale.
 
@@ -14,6 +13,8 @@ Tout est rangé par espace : lmdd-confluence et lmdd-croix-rousse (les deux bout
 
 Principe de sécurité : tu proposes, Jessim valide. Une suppression n'est jamais immédiate : l'outil la met en attente et Jessim la confirme dans l'application. Dis-le-lui clairement, sans prétendre que c'est déjà fait.
 
+Pour un rappel (« rappelle-moi », « réveille-moi »), utilise create_reminder et confirme le jour et l'heure. Le briefing du matin et le bilan du soir sont rédigés automatiquement ; si Jessim les demande, lis-les en entier.
+
 Si une demande sort de ce que tes outils permettent aujourd'hui (mails, stocks, sport, courses...), dis simplement que ce n'est pas encore branché.`;
 
 /** Derniers échanges, pour comprendre « non, plutôt demain ». Vidés après dix minutes de silence. */
@@ -21,11 +22,17 @@ const HISTORY_TTL_MS = 10 * 60_000;
 const HISTORY_MAX_MESSAGES = 12;
 let history: { at: number; messages: Anthropic.Beta.BetaMessageParam[] } = { at: 0, messages: [] };
 
-export async function ask(message: string): Promise<string> {
+export interface Answer {
+  reply: string;
+  deviceReminders: DeviceReminder[];
+}
+
+export async function ask(message: string, options: { deviceCanCreate: boolean }): Promise<Answer> {
   if (Date.now() - history.at > HISTORY_TTL_MS) history.messages = [];
   const context = await describeContext();
+  const session: Session = { deviceCanCreate: options.deviceCanCreate, deviceReminders: [] };
 
-  const final = await client.beta.messages.toolRunner({
+  const final = await claude.beta.messages.toolRunner({
     model: config.JARVIS_MODEL,
     max_tokens: 16000,
     system: SYSTEM,
@@ -33,7 +40,7 @@ export async function ask(message: string): Promise<string> {
     // Si le modèle principal décline une demande, l'API la rejoue sur un modèle de secours.
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
-    tools,
+    tools: buildTools(session),
     max_iterations: 12,
     messages: [
       ...history.messages,
@@ -41,7 +48,9 @@ export async function ask(message: string): Promise<string> {
     ],
   });
 
-  if (final.stop_reason === "refusal") return "Désolé, je ne peux pas répondre à cette demande.";
+  if (final.stop_reason === "refusal") {
+    return { reply: "Désolé, je ne peux pas répondre à cette demande.", deviceReminders: session.deviceReminders };
+  }
   const reply = final.content
     .filter((block) => block.type === "text")
     .map((block) => block.text)
@@ -58,5 +67,5 @@ export async function ask(message: string): Promise<string> {
       { role: "assistant" as const, content: reply },
     ].slice(-HISTORY_MAX_MESSAGES),
   };
-  return reply;
+  return { reply, deviceReminders: session.deviceReminders };
 }

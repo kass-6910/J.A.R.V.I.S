@@ -8,6 +8,7 @@ import { ZodError } from "zod";
 import { apiRoutes } from "./api/routes.js";
 import { config } from "./config.js";
 import { isCalendarConfigured } from "./connectors/google/calendar.js";
+import { isNotifyConfigured } from "./connectors/notifications/ntfy.js";
 import { pool } from "./db/client.js";
 import { NotFoundError } from "./services/tasks.js";
 
@@ -33,7 +34,11 @@ export async function buildApp(): Promise<FastifyInstance> {
 
   app.get("/api/health", async () => {
     await pool.query("select 1");
-    return { status: "ok", calendar: isCalendarConfigured() ? "configured" : "not_configured" };
+    return {
+      status: "ok",
+      calendar: isCalendarConfigured() ? "configured" : "not_configured",
+      notifications: isNotifyConfigured() ? "configured" : "not_configured",
+    };
   });
 
   await app.register(

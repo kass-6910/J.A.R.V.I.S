@@ -4,7 +4,10 @@ import { ask } from "../brain/index.js";
 import { db, SPACE_SLUGS } from "../db/client.js";
 import { PRIORITIES } from "../db/schema.js";
 import { now, parseDateTime, parseDay } from "../lib/time.js";
+import { sendNotification } from "../connectors/notifications/ntfy.js";
 import { listPendingActions, resolveAction } from "../services/actions.js";
+import { generateBriefing, latestBriefing, listBriefings } from "../services/briefing.js";
+import { cancelReminder, listUpcomingReminders } from "../services/reminders.js";
 import { getDayPlan, replanToday } from "../services/planning.js";
 import {
   completeTask,
@@ -34,15 +37,23 @@ function toTaskInput<T extends Partial<z.infer<typeof taskBody>>>(body: T) {
 export async function apiRoutes(app: FastifyInstance): Promise<void> {
   /** Point d'entrée de la voix : le Raccourci envoie { message } et lit { reponse }. */
   app.post("/jarvis", async (req, reply) => {
-    const { message } = z.object({ message: z.string().trim().min(1).max(4000) }).parse(req.body);
+    const body = z
+      .object({
+        message: z.string().trim().min(1).max(4000),
+        /** Le Raccourci à jour envoie true : il crée lui-même les rappels iPhone et les alarmes. */
+        rappels_sur_iphone: z.boolean().optional(),
+      })
+      .parse(req.body);
     try {
-      return { reponse: await ask(message) };
+      const answer = await ask(body.message, { deviceCanCreate: body.rappels_sur_iphone === true });
+      return { reponse: answer.reply, rappels: answer.deviceReminders };
     } catch (err) {
       // Le Raccourci lit « reponse » à voix haute : même en cas de panne, Jessim entend ce qui se passe.
       req.log.error(err);
       return reply.code(502).send({
         error: "Le cerveau de Jarvis est indisponible.",
         reponse: "Je n'arrive pas à réfléchir pour l'instant, réessaie dans un instant.",
+        rappels: [],
       });
     }
   });
@@ -93,6 +104,35 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
   });
 
   app.post("/planning/replan", () => replanToday());
+
+  app.get("/reminders", () => listUpcomingReminders());
+
+  // Annuler depuis l'application est un geste de Jessim lui-même : pas de mise en attente.
+  app.delete("/reminders/:id", async (req, reply) => {
+    const { id } = idParams.parse(req.params);
+    await cancelReminder(id);
+    return reply.code(204).send();
+  });
+
+  /** Pour le Raccourci « Briefing » : le dernier briefing du jour, rédigé s'il n'existe pas encore. */
+  app.get("/briefing", async () => {
+    const today = now().startOf("day");
+    const briefing = (await latestBriefing(today)) ?? (await generateBriefing("morning", today));
+    return { reponse: briefing.text, ...briefing };
+  });
+
+  app.get("/briefings", () => listBriefings());
+
+  /** Rédige maintenant le briefing ou le bilan du jour (le remplace s'il existe). */
+  app.post("/briefings/:kind", async (req) => {
+    const { kind } = z.object({ kind: z.enum(["morning", "evening"]) }).parse(req.params);
+    return generateBriefing(kind);
+  });
+
+  app.post("/notifications/test", async () => {
+    await sendNotification({ title: "Jarvis", message: "Les notifications fonctionnent.", tags: ["white_check_mark"] });
+    return { ok: true };
+  });
 
   app.get("/actions/pending", () => listPendingActions());
 

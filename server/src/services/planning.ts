@@ -96,3 +96,33 @@ export async function replanToday(): Promise<DayPlan> {
 
   return { day: iso, events, blocks: await loadBlocks(iso), unplaced, calendar };
 }
+
+/**
+ * Aperçu d'un jour à venir, sans rien enregistrer : où tomberaient les tâches
+ * à faire si la journée commençait maintenant. Sert au bilan du soir.
+ */
+export async function previewDay(day: DateTime): Promise<DayPlan> {
+  const iso = day.toISODate()!;
+  const [{ events, calendar }, open] = await Promise.all([loadEvents(day), listOpenTasks()]);
+  const window = {
+    start: atTime(day, config.PLANNING_DAY_START).toMillis(),
+    end: atTime(day, config.PLANNING_DAY_END).toMillis(),
+  };
+  const { placed, unplaced } = planDay({
+    window,
+    now: window.start,
+    busy: events.filter((e) => !e.allDay).map((e) => ({ start: e.start.getTime(), end: e.end.getTime() })),
+    tasks: open,
+  });
+  const blocks = placed.map((p) => ({
+    id: `apercu-${p.task.id}`,
+    day: iso,
+    kind: "task" as const,
+    taskId: p.task.id,
+    title: p.task.title,
+    startsAt: new Date(p.start),
+    endsAt: new Date(p.end),
+    protected: false,
+  }));
+  return { day: iso, events, blocks, unplaced, calendar };
+}

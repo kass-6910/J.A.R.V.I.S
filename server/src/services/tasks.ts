@@ -67,7 +67,12 @@ export async function createTask(input: TaskInput): Promise<Task> {
 export async function updateTask(id: string, input: Partial<TaskInput>): Promise<Task> {
   const { spaces: slugs, ...values } = input;
   await getTask(id);
-  if (Object.keys(values).length > 0) await db.update(tasks).set(values).where(eq(tasks.id, id));
+  if (Object.keys(values).length > 0) {
+    await db
+      .update(tasks)
+      .set({ ...values, ...(values.deadline !== undefined && { deadlineAlertedAt: null }) })
+      .where(eq(tasks.id, id));
+  }
   if (slugs) await setSpaces(id, slugs);
   return getTask(id);
 }

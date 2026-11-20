@@ -25,6 +25,13 @@ const schema = z.object({
   GOOGLE_CLIENT_SECRET: z.string().default(""),
   GOOGLE_REFRESH_TOKEN: z.string().default(""),
   GOOGLE_CALENDAR_IDS: z.string().default("primary"),
+  /** Adresse publique de la web app, ouverte quand on touche une notification. */
+  PUBLIC_URL: z.string().default(""),
+  BRIEFING_TIME: hhmm.default("07:00"),
+  EVENING_TIME: hhmm.default("21:30"),
+  NTFY_URL: z.string().url().default("https://ntfy.sh"),
+  NTFY_TOPIC: z.string().default(""),
+  NTFY_TOKEN: z.string().default(""),
 });
 
 const parsed = schema.safeParse(process.env);

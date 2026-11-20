@@ -353,3 +353,26 @@ nav button.active {
 .mic-area p {
   font-size: 14px;
 }
+
+.briefing {
+  margin-top: 16px;
+  display: grid;
+  gap: 8px;
+  border-color: var(--accent);
+}
+
+.briefing strong {
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.briefing .clamp {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.briefing .row {
+  justify-content: flex-end;
+}

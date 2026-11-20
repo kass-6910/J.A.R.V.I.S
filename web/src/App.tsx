@@ -4,7 +4,9 @@ import {
   getToken,
   setToken,
   UnauthorizedError,
+  type Briefing,
   type DayPlan,
+  type Reminder,
   type PendingAction,
   type Priority,
   type Space,
@@ -12,12 +14,75 @@ import {
 } from "./api";
 import { canListen, listen, speak, unlockSpeech } from "./voice";
 
+const REMINDER_LABEL: Record<Reminder["level"], string> = {
+  notification: "Notification",
+  iphone: "Rappel iPhone",
+  alarm: "Alarme",
+};
+
+/** « 14:30 » aujourd'hui, « demain 9:00 », sinon « sam. 22 nov. 9:00 ». */
+function reminderWhen(iso: string): string {
+  const date = new Date(iso);
+  const opts = { timeZone: "Europe/Paris" } as const;
+  const dayKey = (d: Date) => d.toLocaleDateString("fr-FR", opts);
+  const hour = date.toLocaleTimeString("fr-FR", { ...opts, hour: "2-digit", minute: "2-digit" });
+  const today = new Date();
+  const tomorrow = new Date(today.getTime() + 86_400_000);
+  if (dayKey(date) === dayKey(today)) return hour;
+  if (dayKey(date) === dayKey(tomorrow)) return `demain ${hour}`;
+  return `${date.toLocaleDateString("fr-FR", { ...opts, weekday: "short", day: "numeric", month: "short" })} ${hour}`;
+}
+
+const BRIEFING_TITLE = { morning: "Briefing du matin", evening: "Bilan du soir" } as const;
+
+function BriefingCard({ briefings, act }: { briefings: Briefing[]; act: Act }) {
+  const [open, setOpen] = useState(false);
+  const [writing, setWriting] = useState(false);
+  const latest = briefings[0];
+
+  async function write() {
+    setWriting(true);
+    const kind = new Date().getHours() >= 18 ? "evening" : "morning";
+    await act(() => api.writeBriefing(kind));
+    setWriting(false);
+  }
+
+  if (!latest) {
+    return (
+      <div className="card briefing">
+        <strong>Briefing</strong>
+        <p className="muted">Pas encore de briefing aujourd'hui.</p>
+        <div className="row">
+          <button onClick={write} disabled={writing}>
+            {writing ? "Rédaction…" : "Le rédiger maintenant"}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="card briefing">
+      <strong>{BRIEFING_TITLE[latest.kind]}</strong>
+      <p className={open ? "" : "clamp"}>{latest.text}</p>
+      <div className="row">
+        <button onClick={() => setOpen(!open)}>{open ? "Réduire" : "Tout lire"}</button>
+        <button className="primary" onClick={() => speak(latest.text)}>
+          Écouter
+        </button>
+      </div>
+    </div>
+  );
+}
+
 interface Data {
   spaces: Space[];
   open: Task[];
   done: Task[];
   plan: DayPlan;
   pending: PendingAction[];
+  briefings: Briefing[];
+  reminders: Reminder[];
 }
 
 const PRIORITY_LABEL: Record<Priority, string> = { urgent: "Urgent", high: "Haute", normal: "Normale", low: "Basse" };
@@ -38,13 +103,15 @@ export function App() {
 
   const refresh = useCallback(async () => {
     try {
-      const [spaces, tasks, plan, pending] = await Promise.all([
+      const [spaces, tasks, plan, pending, briefings, reminders] = await Promise.all([
         api.spaces(),
         api.tasks(),
         api.planning(),
         api.pendingActions(),
+        api.briefings(),
+        api.reminders(),
       ]);
-      setData({ spaces, ...tasks, plan, pending });
+      setData({ spaces, ...tasks, plan, pending, briefings, reminders });
       setError(null);
     } catch (err) {
       if (err instanceof UnauthorizedError) {
@@ -261,6 +328,8 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
       </form>
       {reply && <p className="card reply">{reply}</p>}
 
+      <BriefingCard briefings={data.briefings} act={act} />
+
       {data.pending.map((action) => (
         <div key={action.id} className="card pending">
           <div>
@@ -275,6 +344,36 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
           </div>
         </div>
       ))}
+
+      {data.reminders.length > 0 && (
+        <>
+          <h2>Rappels</h2>
+          <ul className="list">
+            {data.reminders.map((r) => (
+              <li key={r.id} className="card slot">
+                <span className="when">{reminderWhen(r.remindAt)}</span>
+                <span className="what">
+                  {r.title}
+                  <span className="meta">{REMINDER_LABEL[r.level]}</span>
+                </span>
+                <button
+                  className="ghost"
+                  aria-label={`Annuler le rappel ${r.title}`}
+                  onClick={() =>
+                    window.confirm(
+                      r.status === "on_device"
+                        ? `Annuler « ${r.title} » ? Pense aussi à le supprimer de l'app Rappels ou Horloge.`
+                        : `Annuler « ${r.title} » ?`,
+                    ) && act(() => api.cancelReminder(r.id))
+                  }
+                >
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
 
       <h2>Aujourd'hui</h2>
       {data.plan.calendar === "not_configured" && (

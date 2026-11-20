@@ -24,6 +24,24 @@ export interface DayPlan {
   calendar: "connected" | "not_configured" | "error";
 }
 
+export type BriefingKind = "morning" | "evening";
+
+export interface Briefing {
+  id: string;
+  day: string;
+  kind: BriefingKind;
+  text: string;
+  createdAt: string;
+}
+
+export interface Reminder {
+  id: string;
+  title: string;
+  remindAt: string;
+  level: "notification" | "iphone" | "alarm";
+  status: "scheduled" | "on_device";
+}
+
 export interface PendingAction {
   id: string;
   summary: string;
@@ -72,6 +90,10 @@ export const api = {
   tasks: () => call<{ open: Task[]; done: Task[] }>("GET", "/tasks"),
   planning: () => call<DayPlan>("GET", "/planning"),
   pendingActions: () => call<PendingAction[]>("GET", "/actions/pending"),
+  briefings: () => call<Briefing[]>("GET", "/briefings"),
+  writeBriefing: (kind: BriefingKind) => call<Briefing>("POST", `/briefings/${kind}`),
+  reminders: () => call<Reminder[]>("GET", "/reminders"),
+  cancelReminder: (id: string) => call<void>("DELETE", `/reminders/${id}`),
   ask: (message: string) => call<{ reponse: string }>("POST", "/jarvis", { message }),
   createTask: (task: Partial<Task>) => call<Task>("POST", "/tasks", task),
   completeTask: (id: string) => call<Task>("POST", `/tasks/${id}/complete`, {}),

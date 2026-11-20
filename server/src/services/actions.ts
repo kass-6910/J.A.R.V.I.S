@@ -1,6 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { actionsLog } from "../db/schema.js";
+import { cancelReminder } from "./reminders.js";
 import { deleteTask, NotFoundError } from "./tasks.js";
 
 export type Action = typeof actionsLog.$inferSelect;
@@ -11,6 +12,9 @@ export type Action = typeof actionsLog.$inferSelect;
  */
 const VALIDATED_ACTIONS: Record<string, (input: any) => Promise<void>> = {
   delete_task: (input: { task_id: string }) => deleteTask(input.task_id),
+  cancel_reminder: async (input: { reminder_id: string }) => {
+    await cancelReminder(input.reminder_id);
+  },
 };
 
 export async function logExecuted(tool: string, input: unknown, summary: string): Promise<void> {
