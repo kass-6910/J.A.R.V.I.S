@@ -122,3 +122,71 @@ export const briefings = pgTable(
   },
   (t) => [uniqueIndex("briefings_day_kind_idx").on(t.day, t.kind)],
 );
+
+export const MAIL_PROVIDERS = ["gmail", "outlook"] as const;
+export type MailProvider = (typeof MAIL_PROVIDERS)[number];
+export const MAIL_IMPORTANCE = ["high", "normal", "low"] as const;
+
+export interface SchoolEvent {
+  kind: "exam" | "deadline" | "schedule_change" | "other";
+  title: string;
+  /** Date ISO 8601 si le mail en donne une. */
+  date: string | null;
+}
+
+/** Mails relevés dans Gmail et l'Outlook de l'école. Jarvis ne modifie jamais la boîte d'origine. */
+export const mails = pgTable(
+  "mails",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    provider: text({ enum: MAIL_PROVIDERS }).notNull(),
+    externalId: text("external_id").notNull(),
+    threadId: text("thread_id"),
+    /** En-tête Message-ID, pour répondre dans le même fil. */
+    messageIdHeader: text("message_id_header"),
+    fromName: text("from_name").notNull(),
+    fromAddress: text("from_address").notNull(),
+    /** Adresse à qui répondre (Reply-To, sinon l'expéditeur). */
+    replyAddress: text("reply_address").notNull(),
+    subject: text().notNull(),
+    snippet: text().notNull(),
+    body: text().notNull(),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
+    unread: boolean().notNull(),
+    /** Tri : null tant que le mail n'est pas trié. */
+    importance: text({ enum: MAIL_IMPORTANCE }),
+    summary: text(),
+    needsReply: boolean("needs_reply").notNull().default(false),
+    schoolEvent: jsonb("school_event").$type<SchoolEvent>(),
+    triageSource: text("triage_source", { enum: ["claude", "fallback"] }),
+    triageAttempts: integer("triage_attempts").notNull().default(0),
+    /** Notification « mail important » déjà envoyée. */
+    notifiedAt: timestamp("notified_at", { withTimezone: true }),
+    /** Marqué comme traité dans Jarvis (la boîte mail n'est pas touchée). */
+    handledAt: timestamp("handled_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("mails_provider_external_idx").on(t.provider, t.externalId),
+    index("mails_received_idx").on(t.receivedAt),
+  ],
+);
+
+/** Réponses proposées par Jarvis ; envoyées seulement après validation de Jessim. */
+export const mailDrafts = pgTable("mail_drafts", {
+  id: uuid().primaryKey().defaultRandom(),
+  mailId: uuid("mail_id")
+    .notNull()
+    .references(() => mails.id, { onDelete: "cascade" }),
+  body: text().notNull(),
+  status: text({ enum: ["pending", "sent", "rejected"] }).notNull().default("pending"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+});
+
+/** Petites valeurs persistantes : dernière relève des mails, jetons OAuth renouvelés... */
+export const kvStore = pgTable("kv_store", {
+  key: text().primaryKey(),
+  value: text().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});

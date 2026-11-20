@@ -10,6 +10,7 @@ import { config } from "./config.js";
 import { isCalendarConfigured } from "./connectors/google/calendar.js";
 import { isNotifyConfigured } from "./connectors/notifications/ntfy.js";
 import { pool } from "./db/client.js";
+import { mailStatus } from "./services/mails.js";
 import { NotFoundError } from "./services/tasks.js";
 
 function tokenMatches(header: string | undefined): boolean {
@@ -38,6 +39,7 @@ export async function buildApp(): Promise<FastifyInstance> {
       status: "ok",
       calendar: isCalendarConfigured() ? "configured" : "not_configured",
       notifications: isNotifyConfigured() ? "configured" : "not_configured",
+      mail: mailStatus(),
     };
   });
 

@@ -5,8 +5,9 @@ import { db } from "../db/client.js";
 import { tasks } from "../db/schema.js";
 import { formatTime, now } from "../lib/time.js";
 import { findBriefing, generateBriefing, notifyBriefing } from "../services/briefing.js";
+import { checkMailboxes } from "../services/mails.js";
 import { sendDueReminders } from "../services/reminders.js";
-import { dueRoutines } from "./routines.js";
+import { dueRoutines, isIntervalDue } from "./routines.js";
 
 const TICK_MS = 30_000;
 /** Une tâche dont l'échéance tombe dans moins de deux heures déclenche une alerte, une seule fois. */
@@ -54,35 +55,47 @@ async function runRoutines(): Promise<void> {
   }
 }
 
-/** Chaque étape est isolée : une panne de l'une n'empêche pas les autres. */
-async function tick(): Promise<void> {
-  for (const [name, job] of [
-    ["rappels", sendDueReminders],
-    ["échéances", alertDeadlines],
-    ["briefing et bilan", runRoutines],
-  ] as const) {
-    try {
-      await job();
-    } catch (err) {
-      console.error(`Tâche planifiée « ${name} » en échec :`, err);
-    }
-  }
+const MAIL_INTERVAL_MS = 15 * 60_000;
+
+interface Job {
+  name: string;
+  run: () => Promise<void>;
+  /** Intervalle minimal entre deux passages ; à chaque tour sinon. */
+  everyMs?: number;
 }
 
-/** Démarre le planificateur ; renvoie une fonction pour l'arrêter. */
+const JOBS: Job[] = [
+  { name: "rappels", run: sendDueReminders },
+  { name: "échéances", run: alertDeadlines },
+  { name: "briefing et bilan", run: runRoutines },
+  { name: "mails", run: async () => void (await checkMailboxes()), everyMs: MAIL_INTERVAL_MS },
+];
+
+/**
+ * Démarre le planificateur ; renvoie une fonction pour l'arrêter.
+ * Chaque tâche tourne indépendamment : une tâche lente (tri des mails, rédaction du briefing)
+ * ne retarde pas les rappels, et une tâche ne se chevauche jamais avec elle-même.
+ */
 export function startScheduler(): () => Promise<void> {
-  let running: Promise<void> | null = null;
-  const run = () => {
-    // Un tour lent (rédaction du briefing) ne doit pas se chevaucher avec le suivant.
-    if (running) return;
-    running = tick().finally(() => {
-      running = null;
-    });
+  const running = new Map<string, Promise<void>>();
+  const lastRun = new Map<string, number>();
+
+  const tick = () => {
+    for (const job of JOBS) {
+      if (running.has(job.name)) continue;
+      if (job.everyMs && !isIntervalDue(lastRun.get(job.name) ?? null, Date.now(), job.everyMs)) continue;
+      lastRun.set(job.name, Date.now());
+      const promise = job
+        .run()
+        .catch((err) => console.error(`Tâche planifiée « ${job.name} » en échec :`, err))
+        .finally(() => running.delete(job.name));
+      running.set(job.name, promise);
+    }
   };
-  run();
-  const timer = setInterval(run, TICK_MS);
+  tick();
+  const timer = setInterval(tick, TICK_MS);
   return async () => {
     clearInterval(timer);
-    await running;
+    await Promise.all(running.values());
   };
 }

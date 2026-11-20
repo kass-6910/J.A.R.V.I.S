@@ -7,9 +7,12 @@ import { now, parseDateTime, parseDay } from "../lib/time.js";
 import { sendNotification } from "../connectors/notifications/ntfy.js";
 import { listPendingActions, resolveAction } from "../services/actions.js";
 import { generateBriefing, latestBriefing, listBriefings } from "../services/briefing.js";
+import { checkMailboxes, getMail, listMails, mailStatus, setMailHandled } from "../services/mails.js";
 import { cancelReminder, listUpcomingReminders } from "../services/reminders.js";
+import { spaceBoard, spaceLinks, spacesOverview } from "../services/spaces.js";
 import { getDayPlan, replanToday } from "../services/planning.js";
 import {
+  classifyTaskInBackground,
   completeTask,
   createTask,
   deleteTask,
@@ -60,10 +63,49 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
 
   app.get("/spaces", () => db.query.spaces.findMany({ orderBy: (s, { asc }) => asc(s.position) }));
 
+  app.get("/spaces/overview", async () => ({ spaces: await spacesOverview(), links: await spaceLinks() }));
+
+  app.get("/spaces/:slug", async (req) => {
+    const { slug } = z.object({ slug: z.enum(SPACE_SLUGS) }).parse(req.params);
+    return spaceBoard(slug);
+  });
+
+  app.get("/mails", async (req) => {
+    const q = z
+      .object({
+        space: z.enum(SPACE_SLUGS).optional(),
+        important: z.enum(["true", "false"]).optional(),
+        handled: z.enum(["true", "false"]).optional(),
+        days: z.coerce.number().int().min(1).max(30).optional(),
+      })
+      .parse(req.query);
+    return {
+      status: mailStatus(),
+      mails: await listMails({
+        space: q.space,
+        importantOnly: q.important === "true",
+        includeHandled: q.handled === "true",
+        days: q.days,
+      }),
+    };
+  });
+
+  app.get("/mails/:id", async (req) => getMail(idParams.parse(req.params).id));
+
+  app.post("/mails/:id/handled", async (req) => {
+    const { id } = idParams.parse(req.params);
+    const { handled } = z.object({ handled: z.boolean().default(true) }).parse(req.body ?? {});
+    return setMailHandled(id, handled);
+  });
+
+  /** Relève les boîtes maintenant, sans attendre le passage du planificateur. */
+  app.post("/mails/sync", () => checkMailboxes());
+
   app.get("/tasks", async () => ({ open: await listOpenTasks(), done: await listDoneTasks() }));
 
   app.post("/tasks", async (req, reply) => {
     const task = await createTask(toTaskInput(taskBody.parse(req.body)));
+    classifyTaskInBackground(task);
     await replanToday();
     return reply.code(201).send(task);
   });

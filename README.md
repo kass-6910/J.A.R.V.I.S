@@ -1,7 +1,7 @@
 # J.A.R.V.I.S
 
 Assistant vocal personnel : tâches, planning, et plus tard mails, Manageo, santé et le reste.
-Le cahier des charges fait foi ; ce dépôt couvre ses étapes 1 (serveur, base, tâches, planning, voix, web app minimale) et 2 (notifications, rappels, briefing du matin, bilan du soir).
+Le cahier des charges fait foi ; ce dépôt couvre ses étapes 1 (serveur, base, tâches, planning, voix, web app minimale), 2 (notifications, rappels, briefing du matin, bilan du soir) et 3 (mails, espaces et liens).
 
 ## Ce qui marche aujourd'hui
 
@@ -13,9 +13,11 @@ Le cahier des charges fait foi ; ce dépôt couvre ses étapes 1 (serveur, base,
 - **Notifications push** via ntfy : rappels, échéance d'une tâche dans moins de deux heures, briefing et bilan.
 - **Briefing du matin** (07:00 par défaut) : la journée est recalée, puis Claude rédige un texte d'environ une minute : retour sur la veille (fait, pas fait, temps prévu contre temps réel), programme du jour, échéances, une ou deux pistes. Il arrive en notification, s'affiche sur l'accueil et s'écoute par le Raccourci « Briefing ».
 - **Bilan du soir** (21:30 par défaut) : ce qui est fait, ce qui reste, l'aperçu de demain ; le dimanche, le bilan de la semaine avec la tendance. Si Claude est injoignable, une version de secours est rédigée à partir des faits bruts.
-- **Web app** : écrans Accueil et Tâches, installable sur l'écran d'accueil de l'iPhone. Un bouton micro permet de parler à Jarvis, qui répond à voix haute (dictée et voix du navigateur, il faut être en HTTPS).
+- **Mails** : Gmail et l'Outlook de l'école sont relevés toutes les 15 minutes. Claude Haiku trie chaque mail (important ou non, résumé en une phrase, réponse attendue, espace(s), examen ou rendu annoncé). Les mails importants arrivent en notification, dans le contexte de Jarvis et dans le briefing. Jarvis peut lire un mail et proposer une réponse : elle part seulement après validation dans la web app, dans le fil d'origine. Jarvis ne supprime ni ne déplace jamais rien dans la boîte mail. Si Claude est injoignable, le mail est retenté puis classé par un tri de secours.
+- **Espaces et liens** : tâches et mails sont rangés dans les cinq espaces. Une tâche saisie sans espace dans l'app est classée par Claude Haiku (ou laissée sans espace en cas de doute). Un élément rangé dans plusieurs espaces apparaît comme lien.
+- **Web app** : écrans Accueil (briefing, validations, rappels, mails à suivre, journée), Tâches et Espaces (tableau de chaque espace, liens entre espaces), installable sur l'écran d'accueil de l'iPhone. Un bouton micro permet de parler à Jarvis, qui répond à voix haute (dictée et voix du navigateur, il faut être en HTTPS).
 
-Pas encore là : mails, Manageo, santé, transcription côté serveur (Whisper), écriture dans Google Agenda (l'agenda est lu, jamais modifié).
+Pas encore là : Manageo, santé, transcription côté serveur (Whisper), écriture dans Google Agenda (l'agenda est lu, jamais modifié).
 
 ## Démarrer
 
@@ -65,6 +67,18 @@ npm run google:auth -w server
 
 `GOOGLE_CALENDAR_IDS` accepte plusieurs agendas séparés par des virgules.
 
+## Brancher les mails
+
+**Gmail** : relancer `npm run google:auth -w server` (les droits Gmail s'ajoutent à ceux de l'agenda), remplacer `GOOGLE_REFRESH_TOKEN`, puis mettre `GMAIL_ENABLED=true`.
+
+**Outlook de l'école** : inscrire une application dans Microsoft Entra (type « client public », droits délégués `Mail.Read` et `Mail.Send`), mettre son identifiant dans `MS_CLIENT_ID`, puis :
+
+```bash
+npm run outlook:auth -w server
+```
+
+La commande affiche un code à saisir sur le site de Microsoft, puis la ligne `MS_REFRESH_TOKEN=` à copier dans `.env`. L'école peut bloquer les applications externes : son accord est alors nécessaire.
+
 ## Brancher les notifications
 
 1. Installer l'app **ntfy** sur l'iPhone.
@@ -88,7 +102,7 @@ Avec le service public ntfy.sh, les messages (dont le texte du briefing) transit
 | `server/src/planner` | Tri et placement des tâches (fonctions pures, testées) |
 | `server/src/briefing` | Bilan d'une période pour le briefing et le bilan (fonctions pures, testées) |
 | `server/src/jobs` | Planificateur : rappels, alertes d'échéance, briefing et bilan |
-| `server/src/connectors` | Un module par service extérieur : Google Agenda, ntfy |
+| `server/src/connectors` | Un module par service extérieur : Google (Agenda, Gmail), Microsoft (Outlook), ntfy, et les outils mails communs |
 | `server/src/db` | Schéma Drizzle ; migrations dans `server/drizzle` |
 | `web` | Web app React |
 | `shortcuts` | Documentation des Raccourcis iPhone |
@@ -97,6 +111,6 @@ Avec le service public ntfy.sh, les messages (dont le texte du briefing) transit
 
 | Commande | Effet |
 |---|---|
-| `npm test` | Tests du planificateur, du bilan et des routines |
+| `npm test` | Tests du planificateur, du bilan, des routines et de la lecture des mails |
 | `npm run typecheck` | Vérification des types, serveur et web |
 | `npm run db:generate` | Génère une migration après un changement de `schema.ts` |

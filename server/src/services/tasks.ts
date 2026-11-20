@@ -1,23 +1,17 @@
-import { and, eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db, type SpaceSlug } from "../db/client.js";
-import { itemsLinks, spaces, tasks, type Priority } from "../db/schema.js";
+import { tasks, type Priority } from "../db/schema.js";
 import { orderTasks } from "../planner/schedule.js";
+import { removeItem, setItemSpaces, spacesOf } from "./links.js";
+import { guessTaskSpaces } from "./triage.js";
 
 export type Task = typeof tasks.$inferSelect & { spaces: SpaceSlug[] };
 
 export class NotFoundError extends Error {}
 
 async function withSpaces(rows: (typeof tasks.$inferSelect)[]): Promise<Task[]> {
-  if (rows.length === 0) return [];
-  const links = await db
-    .select({ itemId: itemsLinks.itemId, slug: spaces.slug })
-    .from(itemsLinks)
-    .innerJoin(spaces, eq(spaces.id, itemsLinks.spaceId))
-    .where(and(eq(itemsLinks.itemType, "task"), inArray(itemsLinks.itemId, rows.map((r) => r.id))));
-  return rows.map((row) => ({
-    ...row,
-    spaces: links.filter((l) => l.itemId === row.id).map((l) => l.slug as SpaceSlug),
-  }));
+  const links = await spacesOf("task", rows.map((r) => r.id));
+  return rows.map((row) => ({ ...row, spaces: links.get(row.id) ?? [] }));
 }
 
 /** Tâches à faire, dans l'ordre où Jarvis les traite. */
@@ -42,13 +36,6 @@ export async function getTask(id: string): Promise<Task> {
   return task!;
 }
 
-async function setSpaces(taskId: string, slugs: SpaceSlug[]): Promise<void> {
-  await db.delete(itemsLinks).where(and(eq(itemsLinks.itemType, "task"), eq(itemsLinks.itemId, taskId)));
-  if (slugs.length === 0) return;
-  const rows = await db.select().from(spaces).where(inArray(spaces.slug, slugs));
-  await db.insert(itemsLinks).values(rows.map((s) => ({ itemType: "task", itemId: taskId, spaceId: s.id })));
-}
-
 export interface TaskInput {
   title: string;
   durationMin?: number;
@@ -60,7 +47,7 @@ export interface TaskInput {
 export async function createTask(input: TaskInput): Promise<Task> {
   const { spaces: slugs, ...values } = input;
   const [row] = await db.insert(tasks).values(values).returning();
-  await setSpaces(row!.id, slugs ?? []);
+  await setItemSpaces("task", row!.id, slugs ?? []);
   return getTask(row!.id);
 }
 
@@ -73,7 +60,7 @@ export async function updateTask(id: string, input: Partial<TaskInput>): Promise
       .set({ ...values, ...(values.deadline !== undefined && { deadlineAlertedAt: null }) })
       .where(eq(tasks.id, id));
   }
-  if (slugs) await setSpaces(id, slugs);
+  if (slugs) await setItemSpaces("task", id, slugs);
   return getTask(id);
 }
 
@@ -104,6 +91,19 @@ export async function prioritizeTask(id: string, beforeId: string): Promise<void
 export async function deleteTask(id: string): Promise<void> {
   await getTask(id);
   await db.update(tasks).set({ beforeTaskId: null }).where(eq(tasks.beforeTaskId, id));
-  await db.delete(itemsLinks).where(and(eq(itemsLinks.itemType, "task"), eq(itemsLinks.itemId, id)));
+  await removeItem("task", id);
   await db.delete(tasks).where(eq(tasks.id, id));
+}
+
+/**
+ * Tâche saisie sans espace : Claude Haiku la range lui-même, en arrière-plan.
+ * En cas de doute (« la boutique » sans préciser laquelle), elle reste sans espace.
+ */
+export function classifyTaskInBackground(task: Task): void {
+  if (task.spaces.length > 0) return;
+  guessTaskSpaces(task.title)
+    .then(async (slugs) => {
+      if (slugs) await setItemSpaces("task", task.id, slugs);
+    })
+    .catch((err) => console.error(`Classement de la tâche « ${task.title} » impossible :`, err));
 }

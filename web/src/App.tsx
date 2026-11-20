@@ -6,6 +6,8 @@ import {
   UnauthorizedError,
   type Briefing,
   type DayPlan,
+  type Mail,
+  type MailStatus,
   type Reminder,
   type PendingAction,
   type Priority,
@@ -13,6 +15,8 @@ import {
   type Task,
 } from "./api";
 import { canListen, listen, speak, unlockSpeech } from "./voice";
+import { type Act, MailRow, PRIORITY_LABEL, SpaceDots, TaskRow, duration } from "./components";
+import { Spaces } from "./Spaces";
 
 const REMINDER_LABEL: Record<Reminder["level"], string> = {
   notification: "Notification",
@@ -83,35 +87,31 @@ interface Data {
   pending: PendingAction[];
   briefings: Briefing[];
   reminders: Reminder[];
+  mails: Mail[];
+  mailStatus: MailStatus;
 }
-
-const PRIORITY_LABEL: Record<Priority, string> = { urgent: "Urgent", high: "Haute", normal: "Normale", low: "Basse" };
 
 const time = (iso: string) =>
   new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Paris" });
 
-function duration(min: number): string {
-  if (min < 60) return `${min} min`;
-  return min % 60 === 0 ? `${min / 60} h` : `${Math.floor(min / 60)} h ${min % 60}`;
-}
-
 export function App() {
   const [authed, setAuthed] = useState(() => getToken() !== null);
-  const [tab, setTab] = useState<"home" | "tasks">("home");
+  const [tab, setTab] = useState<"home" | "tasks" | "spaces">("home");
   const [data, setData] = useState<Data | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
     try {
-      const [spaces, tasks, plan, pending, briefings, reminders] = await Promise.all([
+      const [spaces, tasks, plan, pending, briefings, reminders, mails] = await Promise.all([
         api.spaces(),
         api.tasks(),
         api.planning(),
         api.pendingActions(),
         api.briefings(),
         api.reminders(),
+        api.mails("?days=3"),
       ]);
-      setData({ spaces, ...tasks, plan, pending, briefings, reminders });
+      setData({ spaces, ...tasks, plan, pending, briefings, reminders, mails: mails.mails, mailStatus: mails.status });
       setError(null);
     } catch (err) {
       if (err instanceof UnauthorizedError) {
@@ -154,8 +154,10 @@ export function App() {
           !error && <p className="muted">Chargement…</p>
         ) : tab === "home" ? (
           <Home data={data} act={act} refresh={refresh} />
-        ) : (
+        ) : tab === "tasks" ? (
           <Tasks data={data} act={act} />
+        ) : (
+          <Spaces spaces={data.spaces} act={act} version={data} />
         )}
       </main>
       <nav>
@@ -164,6 +166,9 @@ export function App() {
         </button>
         <button className={tab === "tasks" ? "active" : ""} onClick={() => setTab("tasks")}>
           Tâches
+        </button>
+        <button className={tab === "spaces" ? "active" : ""} onClick={() => setTab("spaces")}>
+          Espaces
         </button>
       </nav>
     </div>
@@ -194,23 +199,6 @@ function Login({ onDone }: { onDone: () => void }) {
         Connecter
       </button>
     </form>
-  );
-}
-
-type Act = (action: () => Promise<unknown>) => Promise<void>;
-
-function SpaceDots({ slugs, spaces }: { slugs: string[]; spaces: Space[] }) {
-  const matched = spaces.filter((s) => slugs.includes(s.slug));
-  if (matched.length === 0) return null;
-  return (
-    <span className="spaces">
-      {matched.map((s) => (
-        <span key={s.slug} className="space">
-          <i style={{ background: s.color }} />
-          {s.name}
-        </span>
-      ))}
-    </span>
   );
 }
 
@@ -334,7 +322,7 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
         <div key={action.id} className="card pending">
           <div>
             <strong>À valider</strong>
-            <p>{action.summary}</p>
+            <p className="pending-text">{action.summary}</p>
           </div>
           <div className="row">
             <button onClick={() => act(() => api.resolveAction(action.id, "reject"))}>Refuser</button>
@@ -374,6 +362,8 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
           </ul>
         </>
       )}
+
+      <MailsToWatch data={data} act={act} />
 
       <h2>Aujourd'hui</h2>
       {data.plan.calendar === "not_configured" && (
@@ -481,35 +471,36 @@ function Tasks({ data, act }: { data: Data; act: Act }) {
   );
 }
 
-function TaskRow({ task, spaces, act }: { task: Task; spaces: Space[]; act: Act }) {
-  const done = task.status === "done";
+/** Mails importants ou en attente de réponse, pas encore traités. */
+function MailsToWatch({ data, act }: { data: Data; act: Act }) {
+  const [syncing, setSyncing] = useState(false);
+  const connected = Object.values(data.mailStatus).some((s) => s === "configured");
+  if (!connected) return null;
+  const toWatch = data.mails.filter((m) => m.importance === "high" || m.needsReply).slice(0, 5);
+
+  async function sync() {
+    setSyncing(true);
+    await act(() => api.syncMails());
+    setSyncing(false);
+  }
+
   return (
-    <li className={`card task ${done ? "done" : ""}`}>
-      <button
-        className="check"
-        aria-label={done ? `Rouvrir ${task.title}` : `Marquer ${task.title} comme faite`}
-        aria-pressed={done}
-        onClick={() => act(() => (done ? api.reopenTask(task.id) : api.completeTask(task.id)))}
-      />
-      <span className="what">
-        <span className="title">{task.title}</span>
-        <span className="meta">
-          {duration(task.durationMin)}
-          {task.deadline &&
-            ` · pour le ${new Date(task.deadline).toLocaleDateString("fr-FR", { day: "numeric", month: "short", timeZone: "Europe/Paris" })}`}
-          <SpaceDots slugs={task.spaces} spaces={spaces} />
-        </span>
-      </span>
-      {!done && task.priority !== "normal" && (
-        <span className={`badge ${task.priority}`}>{PRIORITY_LABEL[task.priority]}</span>
+    <>
+      <div className="section-head">
+        <h2>Mails à suivre</h2>
+        <button className="link-button" onClick={sync} disabled={syncing}>
+          {syncing ? "Relève…" : "Relever"}
+        </button>
+      </div>
+      {toWatch.length === 0 ? (
+        <p className="muted">Rien d'important en attente.</p>
+      ) : (
+        <ul className="list">
+          {toWatch.map((mail) => (
+            <MailRow key={mail.id} mail={mail} spaces={data.spaces} act={act} />
+          ))}
+        </ul>
       )}
-      <button
-        className="ghost"
-        aria-label={`Supprimer ${task.title}`}
-        onClick={() => window.confirm(`Supprimer « ${task.title} » ?`) && act(() => api.deleteTask(task.id))}
-      >
-        ✕
-      </button>
-    </li>
+    </>
   );
 }

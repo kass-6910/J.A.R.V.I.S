@@ -1,11 +1,12 @@
 /**
- * Obtient le refresh token Google (agenda en lecture seule).
+ * Obtient le refresh token Google : agenda en lecture, Gmail en lecture et envoi des réponses validées.
  * Prérequis : un client OAuth de type « Application de bureau » dans Google Cloud,
  * avec GOOGLE_CLIENT_ID et GOOGLE_CLIENT_SECRET dans le .env.
  * Lancer sur une machine avec un navigateur : npm run google:auth -w server
  */
 import { existsSync } from "node:fs";
 import { createServer } from "node:http";
+import { GOOGLE_SCOPES } from "./scopes.js";
 
 for (const path of [".env", "../.env"]) {
   if (existsSync(path)) {
@@ -29,7 +30,7 @@ authUrl.search = new URLSearchParams({
   client_id: clientId,
   redirect_uri: redirectUri,
   response_type: "code",
-  scope: "https://www.googleapis.com/auth/calendar.readonly",
+  scope: GOOGLE_SCOPES.join(" "),
   access_type: "offline",
   prompt: "consent",
 }).toString();

@@ -1,4 +1,5 @@
 import { formatDateTime, formatTime } from "../lib/time.js";
+import type { Mail } from "./mails.js";
 import type { DayPlan } from "./planning.js";
 import type { Reminder } from "./reminders.js";
 import type { Task } from "./tasks.js";
@@ -41,4 +42,20 @@ const LEVEL_LABEL = { notification: "notification", iphone: "rappel iPhone", ala
 
 export function describeReminder(reminder: Reminder): string {
   return `- [${reminder.id}] ${formatDateTime(reminder.remindAt)} : ${reminder.title} (${LEVEL_LABEL[reminder.level]})`;
+}
+
+const IMPORTANCE_LABEL = { high: "important", normal: "normal", low: "peu important" } as const;
+
+export function describeMail(mail: Mail): string {
+  const parts = [
+    mail.provider === "outlook" ? "boîte de l'école" : "Gmail",
+    mail.importance ? IMPORTANCE_LABEL[mail.importance] : "pas encore trié",
+  ];
+  if (mail.needsReply) parts.push("réponse attendue");
+  if (mail.spaces.length > 0) parts.push(`espaces : ${mail.spaces.join(", ")}`);
+  if (mail.schoolEvent) {
+    parts.push(`école : ${mail.schoolEvent.title}${mail.schoolEvent.date ? ` le ${mail.schoolEvent.date}` : ""}`);
+  }
+  if (mail.handledAt) parts.push("traité");
+  return `- [${mail.id}] ${formatDateTime(mail.receivedAt)}, de ${mail.fromName} : ${mail.summary ?? mail.subject} (${parts.join(" ; ")})`;
 }

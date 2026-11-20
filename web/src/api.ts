@@ -42,6 +42,39 @@ export interface Reminder {
   status: "scheduled" | "on_device";
 }
 
+export interface Mail {
+  id: string;
+  provider: "gmail" | "outlook";
+  fromName: string;
+  subject: string;
+  summary: string | null;
+  body: string;
+  receivedAt: string;
+  importance: "high" | "normal" | "low" | null;
+  needsReply: boolean;
+  schoolEvent: { kind: string; title: string; date: string | null } | null;
+  handledAt: string | null;
+  spaces: string[];
+}
+
+export type MailStatus = Record<"gmail" | "outlook", "configured" | "not_configured">;
+
+export interface SpaceSummary {
+  slug: string;
+  name: string;
+  color: string;
+  openTasks: number;
+  mails: number;
+  importantMails: number;
+}
+
+export interface SpaceLink {
+  type: "task" | "mail";
+  id: string;
+  title: string;
+  spaces: string[];
+}
+
 export interface PendingAction {
   id: string;
   summary: string;
@@ -93,6 +126,11 @@ export const api = {
   briefings: () => call<Briefing[]>("GET", "/briefings"),
   writeBriefing: (kind: BriefingKind) => call<Briefing>("POST", `/briefings/${kind}`),
   reminders: () => call<Reminder[]>("GET", "/reminders"),
+  mails: (query = "") => call<{ status: MailStatus; mails: Mail[] }>("GET", `/mails${query}`),
+  setMailHandled: (id: string, handled: boolean) => call<Mail>("POST", `/mails/${id}/handled`, { handled }),
+  syncMails: () => call<{ added: number }>("POST", "/mails/sync"),
+  spacesOverview: () => call<{ spaces: SpaceSummary[]; links: SpaceLink[] }>("GET", "/spaces/overview"),
+  spaceBoard: (slug: string) => call<{ tasks: Task[]; mails: Mail[] }>("GET", `/spaces/${slug}`),
   cancelReminder: (id: string) => call<void>("DELETE", `/reminders/${id}`),
   ask: (message: string) => call<{ reponse: string }>("POST", "/jarvis", { message }),
   createTask: (task: Partial<Task>) => call<Task>("POST", "/tasks", task),

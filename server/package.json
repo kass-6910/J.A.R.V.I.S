@@ -9,7 +9,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "google:auth": "tsx src/connectors/google/authorize.ts"
+    "google:auth": "tsx src/connectors/google/authorize.ts",
+    "outlook:auth": "tsx src/connectors/microsoft/authorize.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.12.0",

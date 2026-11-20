@@ -29,3 +29,8 @@ export function dueRoutines(input: {
   if (!input.eveningDone && input.minutes >= evening) due.push("evening");
   return due;
 }
+
+/** Tâche à intervalle fixe : due si elle n'a jamais tourné ou si l'intervalle est écoulé. */
+export function isIntervalDue(lastRunMs: number | null, nowMs: number, intervalMs: number): boolean {
+  return lastRunMs === null || nowMs - lastRunMs >= intervalMs;
+}
