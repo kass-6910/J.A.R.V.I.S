@@ -98,10 +98,16 @@ export function buildTools(session: Session) {
         duration_min: duration.optional().describe("Durée estimée en minutes. À estimer si Jessim ne la donne pas."),
         priority: priority.optional(),
         deadline: deadline.optional(),
+        not_before: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional()
+          .describe("Ne pas placer la tâche avant ce jour (AAAA-MM-JJ)."),
         spaces,
       }),
       run: async (input) => {
         const task = await createTask({
+          notBefore: input.not_before,
           title: input.title,
           durationMin: input.duration_min,
           priority: input.priority,

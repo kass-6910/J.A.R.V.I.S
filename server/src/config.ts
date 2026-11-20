@@ -56,6 +56,9 @@ const schema = z.object({
   HOME_ADDRESS: z.string().default(""),
   TRAVEL_MODE: z.enum(["TRANSIT", "DRIVE"]).default("TRANSIT"),
   TRAVEL_BUFFER_MIN: z.coerce.number().int().min(0).max(60).default(10),
+  /** Révisions : nombre de séances avant chaque examen et durée d'une séance. */
+  REVISION_SESSIONS: z.coerce.number().int().min(0).max(6).default(4),
+  REVISION_DURATION_MIN: z.coerce.number().int().min(15).max(240).default(90),
   /** Météo (tenue du jour) : Lyon par défaut. */
   WEATHER_LATITUDE: z.coerce.number().default(45.764),
   WEATHER_LONGITUDE: z.coerce.number().default(4.8357),

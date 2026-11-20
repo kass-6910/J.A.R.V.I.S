@@ -10,6 +10,7 @@ import { checkManageo } from "../services/manageo.js";
 import { runDailyLife, runSupplements } from "../services/life.js";
 import { ensureMealPlan } from "../services/meals.js";
 import { runTravel } from "../services/travel.js";
+import { runSchool } from "../services/school.js";
 import { chargeSubscriptions, checkBudgetAlert } from "../services/budget.js";
 import { notifyUpcomingPrayers, prefetchPrayerData } from "../services/prayer.js";
 import { sendDueReminders } from "../services/reminders.js";
@@ -80,6 +81,7 @@ const JOBS: Job[] = [
   { name: "prière : notifications", run: notifyUpcomingPrayers },
   { name: "vie quotidienne", run: runDailyLife, everyMs: 5 * 60_000 },
   { name: "trajets", run: runTravel, everyMs: 5 * 60_000 },
+  { name: "école : examens et révisions", run: runSchool, everyMs: 30 * 60_000 },
   { name: "menus de la semaine", run: ensureMealPlan, everyMs: 60 * 60_000 },
   {
     name: "budget : abonnements et alertes",

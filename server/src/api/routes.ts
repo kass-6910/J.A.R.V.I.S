@@ -45,6 +45,7 @@ import { answerLocation, currentPlace, listPlaces, pendingArrivals, recordLocati
 import { isCalendarConfigured } from "../connectors/google/calendar.js";
 import { isNotifyConfigured } from "../connectors/notifications/ntfy.js";
 import { isMapsConfigured } from "../connectors/maps/routes.js";
+import { addCourse, addExam, listCourses, removeCourse, upcomingExams } from "../services/school.js";
 import { config } from "../config.js";
 import { createReadStream } from "node:fs";
 import { basename, join, resolve } from "node:path";
@@ -342,6 +343,30 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
         eveningTime: config.EVENING_TIME,
       },
     };
+  });
+
+  // --- École ---
+  app.get("/school", async () => ({ exams: await upcomingExams(), courses: await listCourses() }));
+
+  app.post("/exams", async (req, reply) => {
+    const body = z
+      .object({ title: z.string().trim().min(1).max(150), day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), time: z.string().regex(/^\d{2}:\d{2}$/).optional() })
+      .parse(req.body);
+    const exam = await addExam({ ...body, source: "voix" });
+    await replanToday();
+    return reply.code(exam ? 201 : 200).send(exam ?? { message: "Cet examen est déjà connu." });
+  });
+
+  /** Cours en PDF (base64) : résumé, fiche de révision et quiz. */
+  app.post("/courses", { bodyLimit: 30 * 1024 * 1024 }, async (req, reply) => {
+    const body = z.object({ pdf: z.string().min(100), fileName: z.string().trim().min(1).max(200) }).parse(req.body);
+    const result = await addCourse(body.pdf.replace(/^data:[^,]+,/, ""), body.fileName);
+    return "error" in result ? reply.code(422).send(result) : reply.code(201).send(result);
+  });
+
+  app.delete("/courses/:id", async (req, reply) => {
+    await removeCourse(idParams.parse(req.params).id);
+    return reply.code(204).send();
   });
 
   // --- Lieux et trajets ---

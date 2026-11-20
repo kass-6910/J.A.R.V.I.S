@@ -39,6 +39,8 @@ export const tasks = pgTable(
     actualMin: integer("actual_min"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     completedAt: timestamp("completed_at", { withTimezone: true }),
+    /** Pas avant ce jour : la tâche n'est placée dans le planning qu'à partir de là (révisions…). */
+    notBefore: date("not_before"),
     /** Alerte « échéance proche » déjà envoyée ; remis à zéro si l'échéance change. */
     deadlineAlertedAt: timestamp("deadline_alerted_at", { withTimezone: true }),
   },
@@ -448,4 +450,32 @@ export const locationEvents = pgTable("location_events", {
   answeredAt: timestamp("answered_at", { withTimezone: true }),
   /** Séance démarrée à la salle, terminée au départ. */
   workoutId: uuid("workout_id"),
+});
+
+/** Examens repérés dans les mails de l'école, l'agenda, ou dictés par Jessim. */
+export const exams = pgTable(
+  "exams",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    title: text().notNull(),
+    day: date().notNull(),
+    /** Heure si connue (« 09:00 »). */
+    time: text(),
+    source: text({ enum: ["mail", "agenda", "voix"] }).notNull(),
+    revisionTaskIds: jsonb("revision_task_ids").$type<string[]>().notNull().default([]),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("exams_title_day_idx").on(sql`lower(${t.title})`, t.day)],
+);
+
+/** Cours fournis en PDF : résumé, fiche de révision et quiz rédigés par Claude. */
+export const courses = pgTable("courses", {
+  id: uuid().primaryKey().defaultRandom(),
+  title: text().notNull(),
+  subject: text(),
+  fileName: text("file_name").notNull(),
+  summary: text().notNull(),
+  sheet: text().notNull(),
+  quiz: jsonb().$type<{ question: string; answer: string }[]>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -11,6 +11,7 @@ const PRIORITY_LABEL = { urgent: "urgente", high: "haute", normal: "normale", lo
 export function describeTask(task: Task): string {
   const parts = [`${task.durationMin} min`, `priorité ${PRIORITY_LABEL[task.priority]}`];
   if (task.deadline) parts.push(`échéance ${formatDateTime(task.deadline)}`);
+  if (task.notBefore) parts.push(`pas avant le ${task.notBefore}`);
   if (task.spaces.length > 0) parts.push(`espaces : ${task.spaces.join(", ")}`);
   return `- [${task.id}] ${task.title} (${parts.join(" ; ")})`;
 }

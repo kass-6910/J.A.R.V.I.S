@@ -41,6 +41,7 @@ export interface TaskInput {
   durationMin?: number;
   priority?: Priority;
   deadline?: Date | null;
+  notBefore?: string | null;
   spaces?: SpaceSlug[];
 }
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { api, type Mail, type ShopStatus, type Space, type SpaceLink, type SpaceSummary, type Task } from "./api";
 import { type Act, MailRow, ShopBoard, SpaceDots, TaskRow } from "./components";
 import { LifeBoard } from "./Life";
+import { SchoolBoard } from "./School";
 
 function plural(n: number, word: string): string {
   return `${n} ${word}${n > 1 ? "s" : ""}`;
@@ -55,6 +56,7 @@ export function Spaces({
           </h1>
         </header>
         {current.slug === "vie-perso" && <LifeBoard act={act} version={version} />}
+        {current.slug === "ecole" && <SchoolBoard act={act} version={version} />}
         {shops.find((s) => s.slug === current.slug) && <ShopBoard shop={shops.find((s) => s.slug === current.slug)!} />}
         {!board ? (
           <p className="muted">Chargement…</p>

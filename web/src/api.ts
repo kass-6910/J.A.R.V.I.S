@@ -242,6 +242,26 @@ export interface Settings {
   };
 }
 
+export interface Exam {
+  id: string;
+  title: string;
+  day: string;
+  time: string | null;
+  source: string;
+  inDays: number;
+  revisionsDone: number;
+  revisionTaskIds: string[];
+}
+
+export interface Course {
+  id: string;
+  title: string;
+  subject: string | null;
+  summary: string;
+  sheet: string;
+  quiz: { question: string; answer: string }[];
+}
+
 export interface PendingAction {
   id: string;
   tool: string;
@@ -304,6 +324,10 @@ export const api = {
   setPlaceAddress: (slug: string, address: string) => call<Place>("PATCH", `/places/${slug}`, { address }),
   answerArrival: (id: string, answer: "present" | "passing") =>
     call<{ message: string }>("POST", `/location/${id}/answer`, { answer }),
+  school: () => call<{ exams: Exam[]; courses: Course[] }>("GET", "/school"),
+  addExam: (title: string, day: string) => call<unknown>("POST", "/exams", { title, day }),
+  addCourse: (pdf: string, fileName: string) => call<Course>("POST", "/courses", { pdf, fileName }),
+  removeCourse: (id: string) => call<void>("DELETE", `/courses/${id}`),
   settings: () => call<Settings>("GET", "/settings"),
   wardrobe: () => call<{ items: Garment[]; outfit: TodayOutfit | null }>("GET", "/wardrobe"),
   addGarment: (image: string, mediaType: string) => call<Garment>("POST", "/wardrobe", { image, mediaType }),

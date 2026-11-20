@@ -1,7 +1,7 @@
 # J.A.R.V.I.S
 
-Assistant vocal personnel : tâches, planning, et plus tard mails, Manageo, santé et le reste.
-Le cahier des charges fait foi ; ce dépôt couvre ses étapes 1 (serveur, base, tâches, planning, voix, web app minimale), 2 (notifications, rappels, briefing du matin, bilan du soir), 3 (mails, espaces et liens) et 4 (Manageo, santé, prière).
+Assistant vocal personnel de Jessim : tâches, planning, mails, boutiques LMDD, santé, école et vie quotidienne, à la voix depuis l'iPhone.
+Le cahier des charges fait foi ; ce dépôt couvre ses étapes 1 (serveur, base, tâches, planning, voix, web app minimale), 2 (notifications, rappels, briefing du matin, bilan du soir), 3 (mails, espaces et liens) et 4 (Manageo, santé, prière et tous les autres modules). Ce qui reste à faire hors du code est listé dans `TODO.md`.
 
 ## Ce qui marche aujourd'hui
 
@@ -23,9 +23,28 @@ Le cahier des charges fait foi ; ce dépôt couvre ses étapes 1 (serveur, base,
   - Chiffre d'affaires de la veille comparé à la semaine précédente, dans le briefing.
 - **Santé** : sommeil, pas, calories et séances reçus de l'iPhone (Health Auto Export ou Raccourci, voir `shortcuts/sante.md`). Trois séances de sport par semaine sont placées dans la journée, espacées d'un jour de repos et allégées après une nuit courte. Jessim peut déclarer une séance à la voix ou dans l'app.
 - **Prière** : horaires du jour calculés pour Lyon (Aladhan, méthode réglable), placés dans le planning comme créneaux protégés, avec une notification avant chaque prière. Le rappel du jour est un hadith tiré d'un recueil publié, cité avec son numéro, jamais rédigé par l'IA.
-- **Web app** : écrans Accueil (briefing, rappel du jour, validations, alertes des boutiques, rappels, mails à suivre, journée), Tâches, Espaces (tableau de chaque espace avec la section Manageo des boutiques, liens entre espaces) et Santé, installable sur l'écran d'accueil de l'iPhone. Un bouton micro permet de parler à Jarvis, qui répond à voix haute (dictée et voix du navigateur, il faut être en HTTPS).
+- **École** : examens repérés dans les mails de l'école et l'agenda (ou dictés), rappels 3 jours avant, la veille et le jour J, séances de révision bloquées aux bons jours. Un cours en PDF donne un résumé, une fiche de révision et un quiz que Jarvis pose à la voix.
+- **Repas** : menus de la semaine orientés prise de poids (objectif réglable, halal par défaut), repas placés dans le planning et déplacés si la journée change, collation après la séance, ingrédients ajoutés aux courses ; menus de secours sans IA.
+- **Vie quotidienne** :
+  - liste de courses partagée ;
+  - soins récurrents : un rendez-vous placé dans la semaine, ou un produit ajouté aux courses ;
+  - compléments, avec rappel et bouton « Pris » dans la notification ;
+  - échéances administratives, anniversaires, proches à rappeler, routines du matin et du soir.
+- **Budget perso** : dépenses à la voix, dans l'app ou en photo de facture (lue par Claude), abonnements mensuels, plafond avec alerte à 80 % et au dépassement ; les factures professionnelles sont rangées dans leur boutique.
+- **Garde-robe** : vêtements ajoutés en photo et reconnus par Claude, tenue proposée chaque matin selon la météo et l'agenda, jamais celle de la veille.
+- **Trajets et localisation** :
+  - temps de trajet vers les rendez-vous selon le trafic, bloqué dans le planning ;
+  - alerte « pars maintenant » avec Google Maps et Waze ;
+  - arrivées signalées par l'iPhone, confirmées par Jessim avant toute action (`shortcuts/localisation.md`).
+- **Web app** : cinq écrans comme sur la maquette :
+  - Accueil : briefing, rappel du jour, validations, arrivées à confirmer, alertes des boutiques, rappels, mails à suivre, journée ;
+  - Tâches ;
+  - Espaces : tableau de chaque espace, avec Manageo pour les boutiques, courses, budget et garde-robe pour la vie perso, examens et cours pour l'école ;
+  - Santé : sommeil, sport, repas, compléments, prière, soins ;
+  - Réglages : connexions, lieux, préférences ;
+  - installable sur l'écran d'accueil de l'iPhone, avec un bouton micro pour parler à Jarvis, qui répond à voix haute (dictée et voix du navigateur, il faut être en HTTPS).
 
-Pas encore là : repas, compléments, soins perso, courses et drive, garde-robe, administratif, trajets, budget, proches, localisation, santé, transcription côté serveur (Whisper), écriture dans Google Agenda (l'agenda est lu, jamais modifié).
+Pas encore là : le remplissage du panier du drive (site à choisir), la transcription côté serveur (Whisper), l'écriture dans Google Agenda (l'agenda est lu, jamais modifié), et les options hors V1 listées dans `TODO.md`.
 
 ## Démarrer
 
@@ -115,7 +134,7 @@ Avec le service public ntfy.sh, les messages (dont le texte du briefing) transit
 | `server/src/briefing` | Bilan d'une période pour le briefing et le bilan (fonctions pures, testées) |
 | `server/src/jobs` | Planificateur : rappels, alertes d'échéance, briefing et bilan |
 | `server/src/connectors` | Un module par service extérieur : Google (Agenda, Gmail), Microsoft (Outlook), Manageo, Aladhan et la collection de hadiths, ntfy |
-| `server/src/manageo`, `server/src/health` | Analyse des stocks et du planning de l'équipe, lecture des exports Santé et règles du sport (fonctions pures, testées) |
+| `server/src/manageo`, `health`, `meals`, `life`, `budget`, `wardrobe`, `travel`, `school` | Règles métier en fonctions pures, testées : stocks et équipe, santé et sport, repas, vie quotidienne, budget, tenue du jour, trajets, révisions |
 | `server/src/db` | Schéma Drizzle ; migrations dans `server/drizzle` |
 | `web` | Web app React |
 | `shortcuts` | Documentation des Raccourcis iPhone |
@@ -125,6 +144,6 @@ Avec le service public ntfy.sh, les messages (dont le texte du briefing) transit
 
 | Commande | Effet |
 |---|---|
-| `npm test` | Tests des fonctions pures : planning, bilan, routines, mails, prière, santé, Manageo |
+| `npm test` | Tests des fonctions pures de chaque module |
 | `npm run typecheck` | Vérification des types, serveur et web |
 | `npm run db:generate` | Génère une migration après un changement de `schema.ts` |

@@ -193,7 +193,7 @@ export async function replanToday(): Promise<DayPlan> {
     },
     now: nowMs,
     busy,
-    tasks: open.filter((t) => !keptIds.has(t.id)),
+    tasks: open.filter((t) => !keptIds.has(t.id) && (!t.notBefore || t.notBefore <= iso)),
   });
 
   await db.transaction(async (tx) => {
@@ -253,7 +253,12 @@ export async function previewDay(day: DateTime): Promise<DayPlan> {
   if (sport) busy.push(sport);
   const snack = await placeMeals(day, busy, window.start, sport, new Set<MealSlot>(["matin", "midi", "soir"]));
   busy.push(...snack);
-  const { placed, unplaced } = planDay({ window, now: window.start, busy, tasks: open });
+  const { placed, unplaced } = planDay({
+    window,
+    now: window.start,
+    busy,
+    tasks: open.filter((t) => !t.notBefore || t.notBefore <= iso),
+  });
   const blocks = placed.map((p) => ({
     id: `apercu-${p.task.id}`,
     day: iso,

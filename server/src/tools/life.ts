@@ -29,6 +29,7 @@ import { addExpense, addSubscription, listSubscriptions, monthBudget } from "../
 import { EXPENSE_CATEGORIES, formatEuros } from "../budget/rules.js";
 import { SPACE_SLUGS } from "../db/client.js";
 import { todayOutfit } from "../services/wardrobe.js";
+import { addExam, getCourse, listCourses, upcomingExams } from "../services/school.js";
 import { answerLocation, describeCurrentPlace, recordLocation, updatePlace } from "../services/places.js";
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date AAAA-MM-JJ");
@@ -375,6 +376,44 @@ export function lifeTools() {
         const place = await updatePlace(input.place, { address: input.address });
         await logExecuted("place_set_address", input, `Adresse : ${place.name}`);
         return `Adresse de ${place.name} enregistrée.`;
+      },
+    }),
+    betaZodTool({
+      name: "exam_add",
+      description: "Enregistre un examen dicté par Jessim : rappels 3 jours avant, la veille et le jour J, et séances de révision bloquées dans le planning.",
+      inputSchema: z.object({ title: z.string().min(1), day, time: z.string().regex(/^\d{2}:\d{2}$/).optional() }),
+      run: async (input) => {
+        const exam = await addExam({ title: input.title, day: input.day, time: input.time, source: "voix" });
+        if (!exam) return "Cet examen est déjà enregistré.";
+        await logExecuted("exam_add", input, `Examen : ${exam.title}`);
+        await replanToday();
+        return `Examen « ${exam.title} » enregistré pour le ${exam.day}, avec ${exam.revisionTaskIds.length} séance(s) de révision.`;
+      },
+    }),
+    betaZodTool({
+      name: "school_overview",
+      description: "Liste les examens à venir (avec l'avancement des révisions) et les cours disponibles pour réviser.",
+      inputSchema: z.object({}),
+      run: async () => {
+        const [upcoming, list] = await Promise.all([upcomingExams(), listCourses()]);
+        return [
+          "Examens :",
+          ...(upcoming.length ? upcoming.map((e) => `- ${e.title} le ${e.day}${e.time ? ` à ${e.time}` : ""} (dans ${e.inDays} j, révisions ${e.revisionsDone}/${e.revisionTaskIds.length})`) : ["- aucun"]),
+          "Cours :",
+          ...(list.length ? list.map((c) => `- [${c.id}] ${c.title}${c.subject ? ` (${c.subject})` : ""}`) : ["- aucun cours importé"]),
+        ].join("\n");
+      },
+    }),
+    betaZodTool({
+      name: "course_content",
+      description:
+        "Donne le résumé, la fiche de révision ou le quiz d'un cours. Pour un quiz à la voix : pose une seule question à la fois, attends la réponse de Jessim, corrige-la brièvement, puis passe à la suivante.",
+      inputSchema: z.object({ course_id: id, part: z.enum(["resume", "fiche", "quiz"]) }),
+      run: async (input) => {
+        const course = await getCourse(input.course_id);
+        if (input.part === "resume") return course.summary;
+        if (input.part === "fiche") return course.sheet;
+        return course.quiz.map((q, i) => `${i + 1}. ${q.question}\n   Réponse attendue : ${q.answer}`).join("\n");
       },
     }),
   ];
