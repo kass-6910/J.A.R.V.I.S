@@ -10,6 +10,7 @@ import { formatDateTime, formatTime, now } from "../lib/time.js";
 import { describePlan } from "./describe.js";
 import { healthFacts } from "./health.js";
 import { manageoFacts } from "./manageo.js";
+import { lifeFacts } from "./life.js";
 import { describeHadith, getDailyHadith } from "./prayer.js";
 import { anyMailboxConfigured, listMails, type Mail } from "./mails.js";
 import { previewDay, replanToday } from "./planning.js";
@@ -83,7 +84,7 @@ function section(title: string, lines: string[]): string[] {
 /** Faits du matin. La journée est d'abord recalée : c'est le moment où Jarvis répartit les tâches. */
 async function morningFacts(day: DateTime): Promise<string> {
   const yesterday = day.minus({ days: 1 });
-  const [plan, yesterdayReview, deadlines, reminders, mailLines, hadith, health, shops] = await Promise.all([
+  const [plan, yesterdayReview, deadlines, reminders, mailLines, hadith, health, shops, life] = await Promise.all([
     replanToday(),
     review(yesterday, day),
     upcomingDeadlines(day.plus({ days: 2 })),
@@ -92,6 +93,7 @@ async function morningFacts(day: DateTime): Promise<string> {
     getDailyHadith(day),
     healthFacts(day, "morning"),
     manageoFacts(),
+    lifeFacts("morning"),
   ]);
   return [
     `Nous sommes ${day.setLocale("fr").toFormat("cccc d LLLL yyyy")}.`,
@@ -102,13 +104,14 @@ async function morningFacts(day: DateTime): Promise<string> {
     ...section("Rappels prévus aujourd'hui", reminders),
     ...mailLines,
     ...shops,
+    ...life,
     ...(hadith ? [`Rappel du jour, à lire mot pour mot avec sa référence : ${describeHadith(hadith)}`] : []),
   ].join("\n");
 }
 
 async function eveningFacts(day: DateTime): Promise<string> {
   const tomorrow = day.plus({ days: 1 });
-  const [todayReview, tomorrowPlan, deadlines, reminders, mailLines, health, shops] = await Promise.all([
+  const [todayReview, tomorrowPlan, deadlines, reminders, mailLines, health, shops, life] = await Promise.all([
     review(day, tomorrow),
     previewDay(tomorrow),
     upcomingDeadlines(tomorrow.plus({ days: 2 })),
@@ -116,6 +119,7 @@ async function eveningFacts(day: DateTime): Promise<string> {
     mailFacts(3, "Mails importants ou à répondre, pas encore traités"),
     healthFacts(day, "evening"),
     manageoFacts(),
+    lifeFacts("evening"),
   ]);
   const lines = [
     `Nous sommes ${day.setLocale("fr").toFormat("cccc d LLLL yyyy")}, le soir.`,
@@ -127,6 +131,7 @@ async function eveningFacts(day: DateTime): Promise<string> {
     ...section("Rappels prévus demain", reminders),
     ...mailLines,
     ...shops,
+    ...life,
   ];
 
   // Le dimanche soir, bilan de la semaine et comparaison avec la précédente.
@@ -155,6 +160,7 @@ const INSTRUCTIONS: Record<BriefingKind, string> = {
 Écris le briefing du matin, environ une minute à l'oral (120 à 170 mots), dans cet ordre :
 1. un court retour sur la veille : ce qui est fait, ce qui ne l'est pas, l'écart entre temps prévu et réel s'il est connu, la nuit (durée, régularité), l'activité et le sport de la semaine ;
 2. le programme de la journée : les rendez-vous, les tâches dans l'ordre, les échéances, les rappels, les mails importants et les annonces de l'école ;
+2 ter. la vie perso si des faits sont fournis : anniversaires, papiers à faire, soins à caler, proche à appeler ;
 2 bis. les boutiques LMDD : chiffre d'affaires de la veille (avec la comparaison si elle est fournie), stocks critiques, ruptures prévues et trous dans le planning de l'équipe avec qui appeler ;
 3. une ou deux pistes concrètes pour faire mieux aujourd'hui, tirées des faits (par exemple attaquer tôt une tâche repoussée, ou revoir une estimation trop courte) ;
 4. si un rappel du jour est fourni, termine par lui : annonce-le simplement (« Le rappel du jour »), puis lis-le mot pour mot, sans le reformuler, le résumer ni le commenter, et cite son recueil et son numéro. Il ne compte pas dans la longueur du briefing.

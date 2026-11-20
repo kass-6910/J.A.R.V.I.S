@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
-import { api, type DayPlan, type HealthSummary, type PrayerInfo } from "./api";
+import { api, type DayPlan, type HealthSummary, type LifeOverview, type PrayerInfo } from "./api";
 import type { Act } from "./components";
+import { CareList, Supplements } from "./Life";
 
 const PRAYER_LABEL = { fajr: "Fajr", dhuhr: "Dhuhr", asr: "Asr", maghrib: "Maghrib", isha: "Isha" } as const;
 
@@ -26,10 +27,12 @@ export function Health({
   version: unknown;
 }) {
   const [summary, setSummary] = useState<HealthSummary | null>(null);
+  const [life, setLife] = useState<LifeOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.healthSummary().then(setSummary, (err: Error) => setError(err.message));
+    api.life().then(setLife, () => setLife(null));
   }, [version]);
 
   if (error) return <p className="banner critical">{error}</p>;
@@ -108,6 +111,8 @@ export function Health({
           )}
         </li>
 
+        {life && <Supplements life={life} act={act} />}
+
         {prayer.enabled && (
           <li className="card health prayer-card">
             <strong>Prochaine prière</strong>
@@ -118,6 +123,7 @@ export function Health({
           </li>
         )}
       </ul>
+      {life && life.care.length > 0 && <CareList care={life.care} act={act} limit={3} />}
       <p className="muted footnote">Bilan de la semaine chaque dimanche soir.</p>
     </>
   );

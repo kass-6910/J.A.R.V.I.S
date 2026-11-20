@@ -262,3 +262,88 @@ export const purchaseOrders = pgTable("purchase_orders", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   resolvedAt: timestamp("resolved_at", { withTimezone: true }),
 });
+
+/** Liste de courses partagée : à la voix, depuis l'app, ou ajoutée par les soins, compléments et menus. */
+export const shoppingItems = pgTable("shopping_items", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  qty: text(),
+  source: text({ enum: ["voix", "app", "soins", "complement", "menu"] }).notNull(),
+  /** Élément à l'origine de l'ajout (soin, complément, menu), pour le mettre à jour quand c'est acheté. */
+  refType: text("ref_type"),
+  refId: uuid("ref_id"),
+  checkedAt: timestamp("checked_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Soins récurrents que Jessim oublie : rendez-vous (coiffeur) ou produit à racheter (brosse à dents). */
+export const careItems = pgTable("care_items", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  kind: text({ enum: ["rendez_vous", "produit"] }).notNull(),
+  everyDays: integer("every_days").notNull(),
+  durationMin: integer("duration_min").notNull().default(45),
+  lastDoneOn: date("last_done_on"),
+  /** Tâche ou article de courses créé pour l'échéance en cours. */
+  pendingTaskId: uuid("pending_task_id"),
+  pendingShoppingId: uuid("pending_shopping_id"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export const supplements = pgTable("supplements", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  moment: text({ enum: ["matin", "midi", "soir", "avant_sport", "apres_sport"] }).notNull(),
+  withMeal: boolean("with_meal").notNull().default(true),
+  /** Doses restantes ; null si Jessim ne veut pas suivre le stock. */
+  stockDoses: integer("stock_doses"),
+  lowAt: integer("low_at").notNull().default(7),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Une prise par complément et par jour : rappel, rappel discret, confirmation « pris ». */
+export const supplementIntakes = pgTable(
+  "supplement_intakes",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    supplementId: uuid("supplement_id")
+      .notNull()
+      .references(() => supplements.id, { onDelete: "cascade" }),
+    day: date().notNull(),
+    remindedAt: timestamp("reminded_at", { withTimezone: true }),
+    nudgedAt: timestamp("nudged_at", { withTimezone: true }),
+    takenAt: timestamp("taken_at", { withTimezone: true }),
+  },
+  (t) => [uniqueIndex("supplement_intakes_day_idx").on(t.supplementId, t.day)],
+);
+
+/** Papiers et échéances administratives (CAF, bail, déclarations, factures). */
+export const adminDeadlines = pgTable("admin_deadlines", {
+  id: uuid().primaryKey().defaultRandom(),
+  title: text().notNull(),
+  dueOn: date("due_on").notNull(),
+  remindDays: integer("remind_days").notNull().default(7),
+  notes: text(),
+  doneAt: timestamp("done_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Proches : anniversaire, et fréquence à laquelle Jessim veut les appeler. */
+export const contacts = pgTable("contacts", {
+  id: uuid().primaryKey().defaultRandom(),
+  name: text().notNull(),
+  relation: text(),
+  /** « MM-JJ ». */
+  birthday: text(),
+  birthYear: integer("birth_year"),
+  callEveryDays: integer("call_every_days"),
+  lastContactOn: date("last_contact_on"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Routines du matin et du soir, en option, avec un rappel discret. */
+export const routines = pgTable("routines", {
+  moment: text({ enum: ["matin", "soir"] }).primaryKey(),
+  time: text().notNull(),
+  items: text().notNull(),
+});

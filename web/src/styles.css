@@ -626,3 +626,18 @@ nav button.active {
   align-items: center;
   gap: 8px;
 }
+
+.supplement-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.health.supplements {
+  border-color: var(--success);
+}
+
+.slot > button {
+  flex: none;
+}

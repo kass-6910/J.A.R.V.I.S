@@ -13,6 +13,7 @@ import { anyMailboxConfigured, getMail, listMails, proposeReply, setMailHandled 
 import { getDayPlan, replanToday } from "../services/planning.js";
 import { createReminder, getReminder, listUpcomingReminders } from "../services/reminders.js";
 import { logWorkout, sportWeek } from "../services/health.js";
+import { describeLifeContext, lifeTools } from "./life.js";
 import { describeShop, isManageoConfigured, manageoFacts, proposeOrders, shopStatus } from "../services/manageo.js";
 import {
   completeTask,
@@ -25,13 +26,14 @@ import {
 
 /** État courant donné à Claude avec chaque demande. */
 export async function describeContext(): Promise<string> {
-  const [open, plan, reminders, mails, week, shops] = await Promise.all([
+  const [open, plan, reminders, mails, week, shops, life] = await Promise.all([
     listOpenTasks(),
     getDayPlan(now()),
     listUpcomingReminders(),
     anyMailboxConfigured() ? listMails({ days: 3, limit: 40 }) : Promise.resolve(null),
     sportWeek(now()),
     manageoFacts(),
+    describeLifeContext(),
   ]);
   const toWatch = mails?.filter((m) => m.importance === "high" || m.needsReply).slice(0, 8);
   return [
@@ -43,6 +45,7 @@ export async function describeContext(): Promise<string> {
     "Rappels à venir :",
     ...(reminders.length > 0 ? reminders.map(describeReminder) : ["- aucun"]),
     ...shops,
+    ...life,
     "Mails importants ou en attente de réponse, non traités (trois derniers jours) :",
     ...(toWatch === undefined
       ? ["- aucune boîte mail n'est connectée"]
@@ -85,6 +88,7 @@ export interface Session {
 /** Outils donnés à Claude pour une demande. */
 export function buildTools(session: Session) {
   return [
+    ...lifeTools(),
     betaZodTool({
       name: "create_task",
       description:

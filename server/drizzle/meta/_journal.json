@@ -43,6 +43,13 @@
       "when": 1795195694639,
       "tag": "0005_serious_aaron_stack",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795196149028,
+      "tag": "0006_gigantic_paladin",
+      "breakpoints": true
     }
   ]
 }

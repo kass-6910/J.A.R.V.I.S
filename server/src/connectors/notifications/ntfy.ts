@@ -6,6 +6,8 @@ export interface Notification {
   /** 1 (discret) à 5 (urgent, sonne même en mode concentration selon les réglages de ntfy). */
   priority?: 1 | 2 | 3 | 4 | 5;
   tags?: string[];
+  /** Boutons de la notification : chacun envoie un POST à son adresse (lien signé). */
+  actions?: { label: string; url: string }[];
 }
 
 export function isNotifyConfigured(): boolean {
@@ -31,6 +33,9 @@ export async function sendNotification(n: Notification): Promise<void> {
       message: n.message.slice(0, 3800),
       priority: n.priority ?? 3,
       tags: n.tags,
+      ...(n.actions?.length && {
+        actions: n.actions.map((a) => ({ action: "http", label: a.label, url: a.url, method: "POST", clear: true })),
+      }),
       ...(config.PUBLIC_URL && { click: config.PUBLIC_URL }),
     }),
     signal: AbortSignal.timeout(15_000),

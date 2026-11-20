@@ -10,6 +10,23 @@ import { generateBriefing, latestBriefing, listBriefings } from "../services/bri
 import { checkMailboxes, getMail, listMails, mailStatus, setMailHandled } from "../services/mails.js";
 import { getDailyHadith, getPrayerTimes } from "../services/prayer.js";
 import { checkManageo, isManageoConfigured, shopStatuses } from "../services/manageo.js";
+import {
+  contactNews,
+  listAdminDeadlines,
+  listCareItems,
+  listContacts,
+  listRoutines,
+  markAdminDone,
+  markCareDone,
+  markContacted,
+  markSupplementTaken,
+  removeAdminDeadline,
+  removeCareItem,
+  removeContact,
+  removeSupplement,
+  todaySupplements,
+} from "../services/life.js";
+import { addShoppingItem, listShopping, removeShoppingItem, setShoppingChecked } from "../services/shopping.js";
 import { getHealthDay, ingestHealth, logWorkout, sportWeek } from "../services/health.js";
 import { parseHealthAutoExport, parseShortcutHealth } from "../health/ingest.js";
 import { cancelReminder, listUpcomingReminders } from "../services/reminders.js";
@@ -220,6 +237,56 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     await checkManageo();
     return { configured: isManageoConfigured(), shops: await shopStatuses() };
   });
+
+  // --- Courses ---
+  app.get("/shopping", () => listShopping());
+
+  app.post("/shopping", async (req, reply) => {
+    const body = z.object({ name: z.string().trim().min(1).max(100), qty: z.string().trim().max(40).optional() }).parse(req.body);
+    return reply.code(201).send(await addShoppingItem({ ...body, source: "app" }));
+  });
+
+  app.post("/shopping/:id/check", async (req) => {
+    const { id } = idParams.parse(req.params);
+    const { checked } = z.object({ checked: z.boolean().default(true) }).parse(req.body ?? {});
+    return setShoppingChecked(id, checked);
+  });
+
+  app.delete("/shopping/:id", async (req, reply) => {
+    await removeShoppingItem(idParams.parse(req.params).id);
+    return reply.code(204).send();
+  });
+
+  // --- Vie perso : soins, compléments, administratif, proches, routines ---
+  app.get("/life", async () => {
+    const [care, supplementsToday, admin, news, contacts, routines] = await Promise.all([
+      listCareItems(),
+      todaySupplements(),
+      listAdminDeadlines(),
+      contactNews(30),
+      listContacts(),
+      listRoutines(),
+    ]);
+    return { care, supplementsToday, admin, birthdays: news.birthdays, toCall: news.toCall, contacts, routines };
+  });
+
+  app.post("/supplements/:id/taken", async (req) => markSupplementTaken(idParams.parse(req.params).id));
+  app.post("/care/:id/done", async (req) => markCareDone(idParams.parse(req.params).id));
+  app.post("/admin/:id/done", async (req) => markAdminDone(idParams.parse(req.params).id));
+  app.post("/contacts/:id/called", async (req) => markContacted(idParams.parse(req.params).id));
+
+  // Supprimer depuis l'application est un geste de Jessim lui-même : pas de mise en attente.
+  for (const [path, remove] of [
+    ["/care/:id", removeCareItem],
+    ["/supplements/:id", removeSupplement],
+    ["/admin/:id", removeAdminDeadline],
+    ["/contacts/:id", removeContact],
+  ] as const) {
+    app.delete(path, async (req, reply) => {
+      await remove(idParams.parse(req.params).id);
+      return reply.code(204).send();
+    });
+  }
 
   /** Horaires de prière du jour et rappel du jour. */
   app.get("/prayer", async (req) => {

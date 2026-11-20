@@ -23,7 +23,9 @@ Sport : l'objectif est de trois séances par semaine ; Jarvis les place lui-mêm
 
 Boutiques LMDD : le contexte résume Manageo (chiffre d'affaires d'hier, stocks bas, ruptures prévues, trous dans le planning de l'équipe). Jarvis lit Manageo sans jamais le modifier. Un bon de commande n'est jamais passé directement : propose_purchase_order le prépare et Jessim le valide.
 
-Si une demande sort de ce que tes outils permettent aujourd'hui (repas, courses, drive...), dis simplement que ce n'est pas encore branché.`;
+Vie perso : liste de courses (shopping_add), soins récurrents (care_add, care_done), compléments (supplement_add, supplement_taken), papiers administratifs (admin_add, admin_done), proches et anniversaires (contact_add, contact_called), routines (routine_set). Avant de modifier un élément existant, retrouve son identifiant avec life_overview si le contexte ne le donne pas.
+
+Si une demande sort de ce que tes outils permettent aujourd'hui (repas, drive...), dis simplement que ce n'est pas encore branché.`;
 
 /** Derniers échanges, pour comprendre « non, plutôt demain ». Vidés après dix minutes de silence. */
 const HISTORY_TTL_MS = 10 * 60_000;

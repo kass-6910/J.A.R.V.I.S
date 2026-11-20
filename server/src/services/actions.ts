@@ -1,6 +1,7 @@
 import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db/client.js";
 import { actionsLog } from "../db/schema.js";
+import { removeAdminDeadline, removeCareItem, removeContact, removeSupplement } from "./life.js";
 import { rejectDraft, sendDraft } from "./mails.js";
 import { rejectOrder, validateOrder } from "./manageo.js";
 import { cancelReminder } from "./reminders.js";
@@ -22,6 +23,12 @@ const VALIDATED_ACTIONS: Record<string, { confirm: (input: any) => Promise<void>
   purchase_order: {
     confirm: (input: { order_id: string }) => validateOrder(input.order_id),
     reject: (input: { order_id: string }) => rejectOrder(input.order_id),
+  },
+  life_remove: {
+    confirm: async (input: { type: "soin" | "complement" | "administratif" | "proche"; item_id: string }) => {
+      const remove = { soin: removeCareItem, complement: removeSupplement, administratif: removeAdminDeadline, proche: removeContact }[input.type];
+      await remove(input.item_id);
+    },
   },
   send_mail: {
     confirm: (input: { draft_id: string }) => sendDraft(input.draft_id),

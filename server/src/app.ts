@@ -4,13 +4,15 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import fastifyStatic from "@fastify/static";
 import Fastify, { type FastifyInstance } from "fastify";
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 import { apiRoutes } from "./api/routes.js";
 import { config } from "./config.js";
 import { isCalendarConfigured } from "./connectors/google/calendar.js";
 import { isNotifyConfigured } from "./connectors/notifications/ntfy.js";
 import { pool } from "./db/client.js";
 import { mailStatus } from "./services/mails.js";
+import { verify } from "./lib/signing.js";
+import { markIntakeTaken } from "./services/life.js";
 import { isManageoConfigured } from "./services/manageo.js";
 import { NotFoundError } from "./services/tasks.js";
 
@@ -43,6 +45,15 @@ export async function buildApp(): Promise<FastifyInstance> {
       mail: mailStatus(),
       manageo: isManageoConfigured() ? "configured" : "not_configured",
     };
+  });
+
+  // Boutons des notifications (« Pris ») : pas de jeton, mais un lien signé valable pour cette seule action.
+  app.post("/api/public/intakes/:id/taken", async (req, reply) => {
+    const { id } = z.object({ id: z.string().uuid() }).parse(req.params);
+    const { sig } = z.object({ sig: z.string() }).parse(req.query);
+    if (!verify(`/api/public/intakes/${id}/taken`, sig)) return reply.code(403).send({ error: "Lien invalide." });
+    await markIntakeTaken(id);
+    return { ok: true };
   });
 
   await app.register(

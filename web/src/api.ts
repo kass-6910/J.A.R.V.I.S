@@ -146,6 +146,28 @@ export interface ShopStatus {
   unpublishedWeek: string | null;
 }
 
+export interface ShoppingItem {
+  id: string;
+  name: string;
+  qty: string | null;
+  source: string;
+  checkedAt: string | null;
+}
+
+export interface LifeOverview {
+  care: { id: string; name: string; kind: "rendez_vous" | "produit"; everyDays: number; nextOn: string; lastDoneOn: string | null }[];
+  supplementsToday: {
+    supplement: { id: string; name: string; moment: string; withMeal: boolean; stockDoses: number | null };
+    at: string;
+    takenAt: string | null;
+  }[];
+  admin: { id: string; title: string; dueOn: string; notes: string | null }[];
+  birthdays: { contact: { id: string; name: string; relation: string | null }; on: string; age: number | null; inDays: number }[];
+  toCall: { contact: { id: string; name: string; relation: string | null }; lateDays: number }[];
+  contacts: { id: string; name: string; relation: string | null; lastContactOn: string | null }[];
+  routines: { moment: string; time: string; items: string }[];
+}
+
 export interface PendingAction {
   id: string;
   tool: string;
@@ -199,6 +221,14 @@ export const api = {
   prayer: () => call<PrayerInfo>("GET", "/prayer"),
   shops: () => call<{ configured: boolean; shops: ShopStatus[] }>("GET", "/shops"),
   syncManageo: () => call<unknown>("POST", "/manageo/sync"),
+  shopping: () => call<{ toBuy: ShoppingItem[]; bought: ShoppingItem[] }>("GET", "/shopping"),
+  addShopping: (name: string) => call<ShoppingItem>("POST", "/shopping", { name }),
+  checkShopping: (id: string, checked: boolean) => call<ShoppingItem>("POST", `/shopping/${id}/check`, { checked }),
+  life: () => call<LifeOverview>("GET", "/life"),
+  supplementTaken: (id: string) => call<unknown>("POST", `/supplements/${id}/taken`),
+  careDone: (id: string) => call<unknown>("POST", `/care/${id}/done`),
+  adminDone: (id: string) => call<unknown>("POST", `/admin/${id}/done`),
+  contactCalled: (id: string) => call<unknown>("POST", `/contacts/${id}/called`),
   healthSummary: () => call<HealthSummary>("GET", "/health/summary"),
   logWorkout: () => call<unknown>("POST", "/health/workouts", {}),
   writeBriefing: (kind: BriefingKind) => call<Briefing>("POST", `/briefings/${kind}`),

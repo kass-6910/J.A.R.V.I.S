@@ -41,6 +41,8 @@ const schema = z.object({
   SPORT_SESSIONS_PER_WEEK: z.coerce.number().int().min(0).max(7).default(3),
   SPORT_DURATION_MIN: z.coerce.number().int().min(15).max(180).default(60),
   SPORT_PREFERRED_START: hhmm.default("18:00"),
+  /** Heures des repas par défaut (avant que le module repas ne les place) : rappels des compléments. */
+  MEAL_TIMES: z.string().default("matin=08:00,midi=12:30,soir=19:30"),
   /** Prière : horaires calculés par Aladhan pour Lyon ; méthode 12 = UOIF (France). */
   PRAYER_ENABLED: z.enum(["true", "false"]).default("true").transform((v) => v === "true"),
   PRAYER_LATITUDE: z.coerce.number().default(45.764),
