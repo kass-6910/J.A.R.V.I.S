@@ -20,7 +20,7 @@ Assistant personnel de Jessim. Une seule application Node.js (TypeScript, Fastif
 - Les outils de Claude sont construits par demande (`buildTools(session)`) : la session dit si le client sait créer des rappels sur l'iPhone et collecte ceux à lui renvoyer.
 - Toute rédaction par Claude qui tourne sans Jessim (briefing, bilan, tri des mails) a une version de secours sans IA.
 - Les liens élément ↔ espaces passent par `services/links.ts` (types d'éléments : `task`, `mail`). Un élément dans deux espaces ou plus est un « lien ».
-- Créneaux du planning : `task` et `sport` sont déplaçables (replacés à chaque `replanToday()`), `prayer` est protégé (créé une fois par jour, jamais déplacé). Les prières sont posées avant le reste.
+- Créneaux du planning : `task`, `sport` et `meal` sont déplaçables (replacés à chaque `replanToday()`), `prayer` est protégé (créé une fois par jour, jamais déplacé). Ordre de placement : prières, rendez-vous, repas principaux, séance de sport, collation (après la séance), puis tâches.
 - Manageo : Jarvis ne lit que l'API décrite dans `docs/manageo-api.md`, jamais la base de Manageo. Le dernier relevé est gardé dans `kv_store` ; briefing, contexte et web app lisent ce relevé sans rappeler Manageo. Les alertes ne partent qu'une fois par nouveauté.
 - Rappel religieux : uniquement un texte tiré d'un recueil publié (`connectors/prayer/hadith.ts`), cité avec sa référence. Ni Claude ni le code ne rédigent, résument ou paraphrasent un hadith ; si la source ne répond pas, il n'y a pas de rappel ce jour-là.
 - Les connecteurs mails rendent le format commun de `connectors/mail/types.ts`. Le décodage et la construction des mails sont des fonctions pures testées (`connectors/mail/mime.ts`, `parseGmailMessage`, `parseGraphMessage`).

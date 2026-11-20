@@ -641,3 +641,30 @@ nav button.active {
 .slot > button {
   flex: none;
 }
+
+.health.meal {
+  border-color: var(--success);
+}
+
+.week-menu {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.week-menu li {
+  display: grid;
+  gap: 2px;
+}
+
+.week-menu .title {
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.slot.meal {
+  border-left: 3px solid var(--success);
+}

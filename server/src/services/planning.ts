@@ -8,6 +8,8 @@ import { atTime, now } from "../lib/time.js";
 import { planDay, type Interval } from "../planner/schedule.js";
 import { sportSessionFor, sportWeek } from "./health.js";
 import { ensurePrayerBlocks } from "./prayer.js";
+import { getMeals, mealTimes } from "./meals.js";
+import { MEAL_DURATION_MIN, MEAL_LABEL, type MealSlot } from "../meals/rules.js";
 import { listOpenTasks, type Task } from "./tasks.js";
 
 export interface DayPlan {
@@ -55,6 +57,24 @@ const toInterval = (b: { startsAt: Date; endsAt: Date }): Interval => ({
   end: b.endsAt.getTime(),
 });
 
+/** Premier créneau libre de la durée voulue dans la première fenêtre qui en a un. */
+function placeInWindows(windows: Interval[], durationMin: number, busy: Interval[], nowMs: number): Interval | null {
+  const pseudo = {
+    id: "bloc",
+    durationMin,
+    priority: "high" as const,
+    deadline: null,
+    beforeTaskId: null,
+    createdAt: new Date(0),
+  };
+  for (const window of windows) {
+    if (window.end <= nowMs) continue;
+    const { placed } = planDay({ window, now: nowMs, busy, tasks: [pseudo], bufferMin: 0 });
+    if (placed[0]) return { start: placed[0].start, end: placed[0].end };
+  }
+  return null;
+}
+
 /**
  * Place la séance de sport du jour, de préférence à partir de SPORT_PREFERRED_START,
  * sinon dans le premier créneau libre de la journée. Null si rien ne rentre.
@@ -68,26 +88,60 @@ function placeSport(
   const end = atTime(day, config.PLANNING_DAY_END).toMillis();
   const dayStart = atTime(day, config.PLANNING_DAY_START).toMillis();
   const preferred = Math.max(dayStart, atTime(day, config.SPORT_PREFERRED_START).toMillis());
-  const pseudo = {
-    id: "sport",
-    durationMin: session.durationMin,
-    priority: "high" as const,
-    deadline: null,
-    beforeTaskId: null,
-    createdAt: new Date(0),
-  };
-  for (const start of [preferred, dayStart]) {
-    const { placed } = planDay({ window: { start, end }, now: nowMs, busy, tasks: [pseudo] });
-    if (placed[0]) return { start: placed[0].start, end: placed[0].end };
+  return placeInWindows([{ start: preferred, end }, { start: dayStart, end }], session.durationMin, busy, nowMs);
+}
+
+const MINUTE = 60_000;
+
+interface PlacedMeal extends Interval {
+  slot: MealSlot;
+  title: string;
+}
+
+/**
+ * Place les repas autour des rendez-vous et des prières : à l'heure préférée si possible,
+ * sinon un peu plus tard (jusqu'à 1 h 30) ou un peu plus tôt (30 min). La collation suit
+ * la séance de sport les jours de sport. Les repas déjà commencés ne sont pas replacés.
+ */
+async function placeMeals(
+  day: DateTime,
+  busy: Interval[],
+  nowMs: number,
+  sport: Interval | null,
+  alreadyStarted: Set<MealSlot>,
+): Promise<PlacedMeal[]> {
+  const iso = day.toISODate()!;
+  const menus = await getMeals(iso, iso);
+  const times = mealTimes();
+  const out: PlacedMeal[] = [];
+  for (const slot of ["matin", "midi", "soir", "collation"] as const) {
+    if (alreadyStarted.has(slot)) continue;
+    const preferred = slot === "collation" && sport ? sport.end : atTime(day, times[slot]).toMillis();
+    const windows =
+      slot === "collation"
+        ? [{ start: preferred, end: preferred + 60 * MINUTE }]
+        : [
+            { start: preferred, end: preferred + 90 * MINUTE + MEAL_DURATION_MIN[slot] * MINUTE },
+            { start: preferred - 30 * MINUTE, end: preferred + 90 * MINUTE + MEAL_DURATION_MIN[slot] * MINUTE },
+          ];
+    const placed = placeInWindows(windows, MEAL_DURATION_MIN[slot], [...busy, ...out], nowMs);
+    if (!placed) continue;
+    const menu = menus.find((m) => m.slot === slot);
+    out.push({ ...placed, slot, title: menu ? `${MEAL_LABEL[slot]} : ${menu.title}` : MEAL_LABEL[slot] });
   }
-  return null;
+  return out;
+}
+
+/** Créneau d'un repas, retrouvé d'après son titre. */
+function mealSlotOf(title: string): MealSlot | null {
+  return (Object.entries(MEAL_LABEL) as [MealSlot, string][]).find(([, label]) => title.startsWith(label))?.[0] ?? null;
 }
 
 /** Créneaux que Jarvis déplace librement : les tâches et la séance de sport. */
-const isMovable = (b: { kind: string }) => b.kind === "task" || b.kind === "sport";
+const isMovable = (b: { kind: string }) => b.kind === "task" || b.kind === "sport" || b.kind === "meal";
 
 /**
- * Recale la journée : la séance de sport puis les tâches à faire sont replacées dans
+ * Recale la journée : les repas, la séance de sport puis les tâches à faire sont replacés dans
  * les créneaux libres à partir de maintenant, autour des rendez-vous et des prières.
  * Les créneaux déjà commencés restent en place.
  */
@@ -111,15 +165,24 @@ export async function replanToday(): Promise<DayPlan> {
       isMovable(b) &&
       b.startsAt.getTime() <= nowMs &&
       b.endsAt.getTime() > nowMs &&
-      (b.kind === "sport" ? !week.doneToday : open.some((t) => t.id === b.taskId)),
+      (b.kind === "meal" || (b.kind === "sport" ? !week.doneToday : open.some((t) => t.id === b.taskId))),
   );
   const keptIds = new Set(inProgress.map((b) => b.taskId));
   const fixed = existing.filter((b) => !isMovable(b));
   const busy = [...eventIntervals(events), ...[...fixed, ...inProgress].map(toInterval)];
 
-  const sportInProgress = inProgress.some((b) => b.kind === "sport");
+  // Repas principaux d'abord (la collation attend de savoir où tombe la séance), puis le sport.
+  const started = new Set(
+    existing.filter((b) => b.kind === "meal" && b.startsAt.getTime() <= nowMs).map((b) => mealSlotOf(b.title)).filter((s): s is MealSlot => s !== null),
+  );
+  const mainMeals = await placeMeals(day, busy, nowMs, null, new Set([...started, "collation"]));
+  busy.push(...mainMeals);
+  const sportInProgress = inProgress.find((b) => b.kind === "sport");
   const sport = session && !sportInProgress ? placeSport(day, session, busy, nowMs) : null;
   if (sport) busy.push(sport);
+  const sportOfDay = sport ?? (sportInProgress ? toInterval(sportInProgress) : null);
+  const snack = await placeMeals(day, busy, nowMs, sportOfDay, new Set<MealSlot>([...started, "matin", "midi", "soir"]));
+  busy.push(...snack);
 
   const { placed, unplaced } = planDay({
     window: {
@@ -137,7 +200,7 @@ export async function replanToday(): Promise<DayPlan> {
       .where(
         and(
           eq(scheduleBlocks.day, iso),
-          inArray(scheduleBlocks.kind, ["task", "sport"]),
+          inArray(scheduleBlocks.kind, ["task", "sport", "meal"]),
           gte(scheduleBlocks.startsAt, current.toJSDate()),
         ),
       );
@@ -159,6 +222,9 @@ export async function replanToday(): Promise<DayPlan> {
         endsAt: new Date(sport.end),
       });
     }
+    for (const meal of [...mainMeals, ...snack]) {
+      rows.push({ day: iso, kind: "meal", taskId: null, title: meal.title, startsAt: new Date(meal.start), endsAt: new Date(meal.end) });
+    }
     if (rows.length > 0) await tx.insert(scheduleBlocks).values(rows);
   });
 
@@ -179,8 +245,12 @@ export async function previewDay(day: DateTime): Promise<DayPlan> {
     end: atTime(day, config.PLANNING_DAY_END).toMillis(),
   };
   const busy = [...eventIntervals(events), ...fixed.map(toInterval)];
+  const mainMeals = await placeMeals(day, busy, window.start, null, new Set<MealSlot>(["collation"]));
+  busy.push(...mainMeals);
   const sport = session ? placeSport(day, session, busy, window.start) : null;
   if (sport) busy.push(sport);
+  const snack = await placeMeals(day, busy, window.start, sport, new Set<MealSlot>(["matin", "midi", "soir"]));
+  busy.push(...snack);
   const { placed, unplaced } = planDay({ window, now: window.start, busy, tasks: open });
   const blocks = placed.map((p) => ({
     id: `apercu-${p.task.id}`,
@@ -212,6 +282,16 @@ export async function previewDay(day: DateTime): Promise<DayPlan> {
             },
           ]
         : []),
+      ...[...mainMeals, ...snack].map((m) => ({
+        id: `apercu-${m.slot}`,
+        day: iso,
+        kind: "meal" as const,
+        taskId: null,
+        title: m.title,
+        startsAt: new Date(m.start),
+        endsAt: new Date(m.end),
+        protected: false,
+      })),
     ].sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
     unplaced,
     calendar,

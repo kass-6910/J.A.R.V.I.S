@@ -347,3 +347,21 @@ export const routines = pgTable("routines", {
   time: text().notNull(),
   items: text().notNull(),
 });
+
+/** Menus prévus, un par créneau et par jour. */
+export const mealPlans = pgTable(
+  "meal_plans",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    day: date().notNull(),
+    slot: text({ enum: ["matin", "midi", "collation", "soir"] }).notNull(),
+    title: text().notNull(),
+    description: text().notNull(),
+    kcal: integer().notNull(),
+    proteinG: integer("protein_g").notNull(),
+    ingredients: jsonb().$type<{ name: string; qty: string }[]>().notNull(),
+    source: text({ enum: ["claude", "template"] }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("meal_plans_day_slot_idx").on(t.day, t.slot)],
+);

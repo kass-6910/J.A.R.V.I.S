@@ -25,7 +25,9 @@ Boutiques LMDD : le contexte résume Manageo (chiffre d'affaires d'hier, stocks 
 
 Vie perso : liste de courses (shopping_add), soins récurrents (care_add, care_done), compléments (supplement_add, supplement_taken), papiers administratifs (admin_add, admin_done), proches et anniversaires (contact_add, contact_called), routines (routine_set). Avant de modifier un élément existant, retrouve son identifiant avec life_overview si le contexte ne le donne pas.
 
-Si une demande sort de ce que tes outils permettent aujourd'hui (repas, drive...), dis simplement que ce n'est pas encore branché.`;
+Repas : Jarvis prévoit des menus de prise de poids pour la semaine et place les repas dans le planning ; get_menu les donne, regenerate_menu les refait selon une demande.
+
+Si une demande sort de ce que tes outils permettent aujourd'hui (remplir le panier du drive...), dis simplement que ce n'est pas encore branché.`;
 
 /** Derniers échanges, pour comprendre « non, plutôt demain ». Vidés après dix minutes de silence. */
 const HISTORY_TTL_MS = 10 * 60_000;

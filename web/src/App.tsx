@@ -44,7 +44,7 @@ const BLOCK_SOURCE: Record<DayPlan["blocks"][number]["kind"], string> = {
   task: "Tâche",
   prayer: "Prière · créneau protégé",
   sport: "Sport · déplacé si la journée change",
-  meal: "Repas",
+  meal: "Repas · déplacé si la journée change",
 };
 
 const BRIEFING_TITLE = { morning: "Briefing du matin", evening: "Bilan du soir" } as const;

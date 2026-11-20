@@ -22,6 +22,9 @@ import {
   todaySupplements,
 } from "../services/life.js";
 import { addShoppingItem, listShopping } from "../services/shopping.js";
+import { describeMeal, getMeals, regenerateMeals, todayTarget } from "../services/meals.js";
+import { replanToday } from "../services/planning.js";
+import { now } from "../lib/time.js";
 
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "date AAAA-MM-JJ");
 const id = z.string().uuid().describe("Identifiant entre crochets, donné par life_overview ou le contexte.");
@@ -252,6 +255,33 @@ export function lifeTools() {
       run: async (input) => {
         await requestValidation("life_remove", { type: input.type, item_id: input.item_id }, `Supprimer ${input.type} « ${input.label} »`);
         return `Suppression de « ${input.label} » en attente : Jessim doit la valider dans l'application.`;
+      },
+    }),
+    betaZodTool({
+      name: "get_menu",
+      description: "Donne les menus prévus (petit-déjeuner, déjeuner, collation, dîner) pour une période, avec l'objectif calorique du jour.",
+      inputSchema: z.object({ from: day.optional().describe("Aujourd'hui par défaut."), to: day.optional() }),
+      run: async (input) => {
+        const from = input.from ?? now().toISODate()!;
+        const meals = await getMeals(from, input.to ?? from);
+        if (meals.length === 0) return "Pas encore de menu prévu pour cette période.";
+        const target = await todayTarget();
+        return [
+          ...meals.map((m) => `- ${m.day} · ${describeMeal(m)} : ${m.description}`),
+          `Objectif d'aujourd'hui : ${target.kcal} kcal${target.sportToday ? " (jour de sport)" : ""}.`,
+        ].join("\n");
+      },
+    }),
+    betaZodTool({
+      name: "regenerate_menu",
+      description:
+        "Refait les menus d'une période en tenant compte d'une demande de Jessim (« pas de poisson cette semaine », « plus de plats froids »). Les ingrédients sont ajoutés aux courses.",
+      inputSchema: z.object({ from: day, to: day, request: z.string().optional() }),
+      run: async (input) => {
+        const meals = await regenerateMeals(input.from, input.to, input.request);
+        await logExecuted("regenerate_menu", input, `Menus refaits du ${input.from} au ${input.to}`);
+        await replanToday();
+        return `Menus refaits (${meals.length} repas), ingrédients ajoutés aux courses.`;
       },
     }),
   ];

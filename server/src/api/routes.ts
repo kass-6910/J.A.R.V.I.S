@@ -27,6 +27,7 @@ import {
   todaySupplements,
 } from "../services/life.js";
 import { addShoppingItem, listShopping, removeShoppingItem, setShoppingChecked } from "../services/shopping.js";
+import { getMeals, regenerateMeals, todayTarget } from "../services/meals.js";
 import { getHealthDay, ingestHealth, logWorkout, sportWeek } from "../services/health.js";
 import { parseHealthAutoExport, parseShortcutHealth } from "../health/ingest.js";
 import { cancelReminder, listUpcomingReminders } from "../services/reminders.js";
@@ -236,6 +237,23 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
   app.post("/manageo/sync", async () => {
     await checkManageo();
     return { configured: isManageoConfigured(), shops: await shopStatuses() };
+  });
+
+  // --- Repas ---
+  app.get("/meals", async (req) => {
+    const q = z.object({ from: z.string().optional(), to: z.string().optional() }).parse(req.query);
+    const from = q.from ?? now().toISODate()!;
+    const [meals, target] = await Promise.all([getMeals(from, q.to ?? now().plus({ days: 6 }).toISODate()!), todayTarget()]);
+    return { meals, target };
+  });
+
+  app.post("/meals/regenerate", async (req) => {
+    const body = z
+      .object({ from: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), to: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), request: z.string().max(500).optional() })
+      .parse(req.body);
+    const meals = await regenerateMeals(body.from, body.to, body.request);
+    await replanToday();
+    return meals;
   });
 
   // --- Courses ---

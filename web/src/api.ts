@@ -168,6 +168,16 @@ export interface LifeOverview {
   routines: { moment: string; time: string; items: string }[];
 }
 
+export interface MealPlan {
+  id: string;
+  day: string;
+  slot: "matin" | "midi" | "collation" | "soir";
+  title: string;
+  description: string;
+  kcal: number;
+  proteinG: number;
+}
+
 export interface PendingAction {
   id: string;
   tool: string;
@@ -225,6 +235,8 @@ export const api = {
   addShopping: (name: string) => call<ShoppingItem>("POST", "/shopping", { name }),
   checkShopping: (id: string, checked: boolean) => call<ShoppingItem>("POST", `/shopping/${id}/check`, { checked }),
   life: () => call<LifeOverview>("GET", "/life"),
+  meals: () =>
+    call<{ meals: MealPlan[]; target: { kcal: number; sportToday: boolean } }>("GET", "/meals"),
   supplementTaken: (id: string) => call<unknown>("POST", `/supplements/${id}/taken`),
   careDone: (id: string) => call<unknown>("POST", `/care/${id}/done`),
   adminDone: (id: string) => call<unknown>("POST", `/admin/${id}/done`),

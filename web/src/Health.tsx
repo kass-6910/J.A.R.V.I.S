@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
-import { api, type DayPlan, type HealthSummary, type LifeOverview, type PrayerInfo } from "./api";
+import { api, type DayPlan, type HealthSummary, type LifeOverview, type MealPlan, type PrayerInfo } from "./api";
 import type { Act } from "./components";
 import { CareList, Supplements } from "./Life";
+
+const SLOT_LABEL = { matin: "Petit-déjeuner", midi: "Déjeuner", collation: "Collation", soir: "Dîner" } as const;
+const SLOT_ORDER = ["matin", "midi", "collation", "soir"];
 
 const PRAYER_LABEL = { fajr: "Fajr", dhuhr: "Dhuhr", asr: "Asr", maghrib: "Maghrib", isha: "Isha" } as const;
 
@@ -28,11 +31,14 @@ export function Health({
 }) {
   const [summary, setSummary] = useState<HealthSummary | null>(null);
   const [life, setLife] = useState<LifeOverview | null>(null);
+  const [meals, setMeals] = useState<{ meals: MealPlan[]; target: { kcal: number; sportToday: boolean } } | null>(null);
+  const [showWeek, setShowWeek] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.healthSummary().then(setSummary, (err: Error) => setError(err.message));
     api.life().then(setLife, () => setLife(null));
+    api.meals().then(setMeals, () => setMeals(null));
   }, [version]);
 
   if (error) return <p className="banner critical">{error}</p>;
@@ -46,6 +52,11 @@ export function Health({
       )
     : undefined;
   const noData = !lastNight && !yesterday && week.done === 0;
+  const nextMeal = plan.blocks.find((b) => b.kind === "meal" && new Date(b.endsAt).getTime() > Date.now());
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Paris" });
+  const nextMenu = nextMeal
+    ? meals?.meals.find((m) => m.day === today && nextMeal.title.startsWith(SLOT_LABEL[m.slot]))
+    : undefined;
 
   return (
     <>
@@ -110,6 +121,46 @@ export function Health({
             <p className="muted">Pas encore reçue.</p>
           )}
         </li>
+
+        {meals && meals.meals.length > 0 && (
+          <li className="card health meal">
+            <strong>Prochain repas</strong>
+            {nextMeal ? (
+              <p>
+                {nextMeal.title}
+                <span className="muted"> · {hm(nextMeal.startsAt)}</span>
+              </p>
+            ) : (
+              <p className="muted">Plus de repas prévu aujourd'hui.</p>
+            )}
+            {nextMenu && <p className="muted">{nextMenu.description}</p>}
+            <p className="muted">
+              Objectif du jour : {meals.target.kcal.toLocaleString("fr-FR")} kcal{meals.target.sportToday ? " (jour de sport)" : ""}
+            </p>
+            <div className="row">
+              <button onClick={() => setShowWeek(!showWeek)}>{showWeek ? "Masquer la semaine" : "Menus de la semaine"}</button>
+            </div>
+            {showWeek && (
+              <ul className="week-menu">
+                {[...new Set(meals.meals.map((m) => m.day))].map((day) => (
+                  <li key={day}>
+                    <span className="title">
+                      {new Date(`${day}T12:00:00`).toLocaleDateString("fr-FR", { weekday: "long", day: "numeric" })}
+                    </span>
+                    {meals.meals
+                      .filter((m) => m.day === day)
+                      .sort((a, b) => SLOT_ORDER.indexOf(a.slot) - SLOT_ORDER.indexOf(b.slot))
+                      .map((m) => (
+                        <span key={m.id} className="muted">
+                          {SLOT_LABEL[m.slot]} : {m.title}
+                        </span>
+                      ))}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </li>
+        )}
 
         {life && <Supplements life={life} act={act} />}
 

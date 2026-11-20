@@ -26,6 +26,7 @@ import {
   type SupplementMoment,
 } from "../life/rules.js";
 import { actionUrl } from "../lib/signing.js";
+import { MEAL_LABEL } from "../meals/rules.js";
 import { atTime, now, zone } from "../lib/time.js";
 import { getValue, setValue } from "./kv.js";
 import { addShoppingItem, getShoppingItem } from "./shopping.js";
@@ -151,9 +152,10 @@ function mealDefaults(): Record<"matin" | "midi" | "soir", string> {
 async function supplementSchedule(day: DateTime): Promise<{ supplement: Supplement; at: number }[]> {
   const blocks = await db.select().from(scheduleBlocks).where(eq(scheduleBlocks.day, iso(day)));
   const meals: Partial<Record<"matin" | "midi" | "soir", number>> = {};
+  // Le repas se reconnaît à son titre (« Déjeuner : … ») : la collation ne compte pas.
   for (const b of blocks.filter((b) => b.kind === "meal")) {
-    const hour = DateTime.fromJSDate(b.startsAt, { zone }).hour;
-    meals[hour < 11 ? "matin" : hour < 16 ? "midi" : "soir"] = b.startsAt.getTime();
+    const slot = (["matin", "midi", "soir"] as const).find((m) => b.title.startsWith(MEAL_LABEL[m]));
+    if (slot) meals[slot] = b.startsAt.getTime();
   }
   const sportBlock = blocks.find((b) => b.kind === "sport");
   const sport = sportBlock ? { start: sportBlock.startsAt.getTime(), end: sportBlock.endsAt.getTime() } : null;
