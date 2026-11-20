@@ -314,3 +314,42 @@ nav button.active {
   justify-content: center;
   gap: 12px;
 }
+
+.mic-area {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  margin: 8px 0 20px;
+}
+
+.mic {
+  width: 72px;
+  height: 72px;
+  padding: 0;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  display: grid;
+  place-items: center;
+}
+
+.mic svg {
+  width: 28px;
+  height: 28px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+.mic.on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.mic-area p {
+  font-size: 14px;
+}

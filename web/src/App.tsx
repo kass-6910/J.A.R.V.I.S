@@ -1,4 +1,4 @@
-import { type FormEvent, useCallback, useEffect, useState } from "react";
+import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
   getToken,
@@ -10,6 +10,7 @@ import {
   type Space,
   type Task,
 } from "./api";
+import { canListen, listen, speak, unlockSpeech } from "./voice";
 
 interface Data {
   spaces: Space[];
@@ -150,16 +151,17 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
   const [message, setMessage] = useState("");
   const [reply, setReply] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [listening, setListening] = useState(false);
+  const stopListening = useRef<(() => void) | null>(null);
 
-  async function send(e: FormEvent) {
-    e.preventDefault();
-    const text = message.trim();
+  async function ask(text: string, aloud: boolean) {
     if (!text || busy) return;
     setBusy(true);
     try {
       const { reponse } = await api.ask(text);
       setReply(reponse);
       setMessage("");
+      if (aloud) speak(reponse);
     } catch (err) {
       setReply(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {
@@ -167,6 +169,35 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
       await refresh();
     }
   }
+
+  function send(e: FormEvent) {
+    e.preventDefault();
+    void ask(message.trim(), false);
+  }
+
+  function toggleMic() {
+    if (listening) {
+      stopListening.current?.();
+      return;
+    }
+    unlockSpeech();
+    setReply(null);
+    setMessage("");
+    setListening(true);
+    stopListening.current = listen({
+      onPartial: setMessage,
+      onFinal: (text) => {
+        setListening(false);
+        if (text) void ask(text, true);
+      },
+      onError: (msg) => {
+        setListening(false);
+        setReply(msg);
+      },
+    });
+  }
+
+  useEffect(() => () => stopListening.current?.(), []);
 
   const taskById = new Map(data.open.map((t) => [t.id, t]));
   const agenda = [
@@ -197,14 +228,34 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
         <p className="muted">{today}</p>
       </header>
 
+      {canListen() && (
+        <div className="mic-area">
+          <button
+            type="button"
+            className={`mic ${listening ? "on" : ""}`}
+            onClick={toggleMic}
+            disabled={busy}
+            aria-label={listening ? "Arrêter l'écoute" : "Parler à Jarvis"}
+            aria-pressed={listening}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <rect x="9" y="3" width="6" height="11" rx="3" />
+              <path d="M5 11a7 7 0 0 0 14 0M12 18v3" />
+            </svg>
+          </button>
+          <p className="muted">{busy ? "Jarvis réfléchit…" : listening ? "Je t'écoute…" : "Touche pour parler"}</p>
+        </div>
+      )}
+
       <form className="ask" onSubmit={send}>
         <input
           value={message}
           onChange={(e) => setMessage(e.target.value)}
-          placeholder="Écris à Jarvis…"
+          placeholder={listening ? "" : "Ou écris à Jarvis…"}
           aria-label="Message pour Jarvis"
+          readOnly={listening}
         />
-        <button className="primary" type="submit" disabled={busy || !message.trim()}>
+        <button className="primary" type="submit" disabled={busy || listening || !message.trim()}>
           {busy ? "…" : "Envoyer"}
         </button>
       </form>

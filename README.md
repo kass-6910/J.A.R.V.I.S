@@ -9,9 +9,9 @@ Le cahier des charges fait foi ; ce dépôt en est l'étape 1 (serveur, base, t�
 - **Planning du jour** : les tâches sont placées dans les créneaux libres autour des rendez-vous Google Agenda, et la journée est recalée à chaque changement.
 - **Voix** : `POST /api/jarvis` reçoit le texte dicté par le Raccourci iPhone et renvoie une réponse courte à lire à voix haute. Claude crée, modifie, termine et réordonne les tâches.
 - **Validation** : une suppression demandée à Jarvis est mise en attente et se valide dans la web app.
-- **Web app** : écrans Accueil et Tâches, installable sur l'écran d'accueil de l'iPhone.
+- **Web app** : écrans Accueil et Tâches, installable sur l'écran d'accueil de l'iPhone. Un bouton micro permet de parler à Jarvis, qui répond à voix haute (dictée et voix du navigateur, il faut être en HTTPS).
 
-Pas encore là : notifications et rappels, briefing et bilan, mails, Manageo, santé, bouton micro de la web app, écriture dans Google Agenda (l'agenda est lu, jamais modifié).
+Pas encore là : notifications et rappels, briefing et bilan, mails, Manageo, santé, transcription côté serveur (Whisper), écriture dans Google Agenda (l'agenda est lu, jamais modifié).
 
 ## Démarrer
 
