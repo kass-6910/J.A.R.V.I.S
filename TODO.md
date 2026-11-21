@@ -2,6 +2,12 @@
 
 Ce qui reste pour que Jarvis tourne entièrement en conditions réelles. Le code de Jarvis est prêt de son côté sauf mention contraire.
 
+## Mise en ligne (VPS partagé avec Manageo)
+
+- [ ] Terminer la sécurisation du VPS (phases 3 et 4 de `docs/DURCISSEMENT-VPS.md` dans le dépôt Manageo) avant d'y mettre les données de Jarvis.
+- [ ] Créer le sous-domaine (`jarvis.manageo.site` ou autre) et suivre `docs/DEPLOIEMENT.md`.
+- [ ] Vérifier le premier `docker build` sur le VPS.
+
 ## Manageo
 
 - [ ] **Exposer l'API Jarvis dans Manageo**, selon `docs/manageo-api.md` :

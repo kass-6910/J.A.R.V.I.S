@@ -70,7 +70,7 @@ npm run dev
 
 Le serveur écoute sur le port 3000 et la web app de développement sur le 5173. Les migrations de la base s'appliquent au démarrage.
 
-En production, sur le VPS :
+En production, sur le VPS partagé avec Manageo : voir `docs/DEPLOIEMENT.md` (Docker, port 4100, sous-domaine nginx). Sans Docker :
 
 ```bash
 npm run build
