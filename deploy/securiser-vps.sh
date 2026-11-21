@@ -218,8 +218,10 @@ SSH="$(port_ssh)"
 etape "État de départ"
 info "Interface Internet : $EXT ; port SSH : $SSH."
 info "Ports à fermer à Internet : ${PORTS_A_FERMER[*]} (Manageo exclu : ${PORTS_MANAGEO[*]})."
-info "Services de la machine elle-même ouverts sur Internet (hors Docker), qui seront refusés par ufw :"
-ss -tlnpH 2>/dev/null | awk '{print $4, $6}' | grep -vE '^(127\.|\[::1\]|localhost)' | grep -v docker-proxy | sed "s/^/    /" || true
+info "Services de la machine elle-même ouverts sur Internet (hors Docker, SSH, 80 et 443), qui seront refusés par ufw :"
+BLOQUES="$(ss -tlnpH 2>/dev/null | awk '{print $4, $6}' | grep -vE '^(127\.|\[::1\]|localhost)' | grep -v docker-proxy \
+  | grep -vE "^[^ ]*:($SSH|80|443) " || true)"
+if [ -n "$BLOQUES" ]; then echo "$BLOQUES" | sed "s/^/    /"; else info "  aucun : seuls SSH, 80 et 443 sont ouverts, et ils restent ouverts."; fi
 info "(les ports de Docker, gérés à l'étape 1, ne sont pas concernés par ufw)"
 verifier_manageo || [ "$SIMULATION" = 1 ] || erreur "Manageo ne répond pas correctement AVANT toute modification : rien n'est fait."
 
