@@ -18,7 +18,7 @@ Les clés et mots de passe ne s'envoient jamais dans une conversation ni dans Gi
 
 | Quoi | Page | Variable du `.env` |
 |---|---|---|
-| Clé de l'IA (Claude) — fait | https://platform.claude.com/settings/keys | `ANTHROPIC_API_KEY` |
+| Clé de l'IA (Claude) — fait, **expire le 23/12/2026** : la renouveler avant | https://platform.claude.com/settings/keys | `ANTHROPIC_API_KEY` |
 | Plafond de dépense de l'IA | https://platform.claude.com/settings/limits | — |
 | Jeton secret de Jarvis | sur le serveur : `openssl rand -hex 32` | `JARVIS_TOKEN` |
 | Mot de passe de la base | sur le serveur : `openssl rand -hex 32` | `JARVIS_DB_PASSWORD` |
@@ -64,9 +64,9 @@ L'école peut bloquer les applications externes : demander son accord en premier
 
 ## 3. Mise en ligne de Jarvis
 
-- [ ] Sous-domaine `jarvis.kassdev.fr` : dans https://hpanel.hostinger.com → Domaines → kassdev.fr → Enregistrements DNS, créer un enregistrement `A` nommé `jarvis` vers `72.62.185.231`. Vérifier avec `dig jarvis.kassdev.fr +short`.
-- [ ] Suivre `docs/DEPLOIEMENT.md` : code, `.env`, `docker compose`, nginx, certificat HTTPS, sauvegardes.
-- [ ] Vérifier le premier `docker build` sur le VPS.
+- [x] Sous-domaine `jarvis.kassdev.fr` : dans https://hpanel.hostinger.com → Domaines → kassdev.fr → Enregistrements DNS, créer un enregistrement `A` nommé `jarvis` vers `72.62.185.231`. Vérifier avec `dig jarvis.kassdev.fr +short`.
+- [x] Jarvis en ligne sur https://jarvis.kassdev.fr (23/11/2026) : code, `.env`, `docker compose`, nginx, certificat HTTPS.
+- [ ] Sauvegardes nocturnes : ajouter la ligne cron de `deploy/backup.sh`.
 - [ ] Renseigner `PUBLIC_URL` (sinon pas de boutons « Pris » ni « Je suis là » dans les notifications).
 - [ ] Renseigner les adresses des lieux dans l'écran Réglages (trajets).
 
@@ -74,11 +74,12 @@ L'école peut bloquer les applications externes : demander son accord en premier
 
 Ces services n'étaient pas joignables depuis l'environnement de développement : leurs connecteurs suivent le format documenté mais n'ont jamais reçu de vraie réponse.
 
-- [ ] Horaires de prière (Aladhan) : vérifier les heures du jour pour Lyon et la méthode de calcul.
+- [x] Horaires de prière (Aladhan) : reçus pour Lyon (Maghrib à 17 h 03 le 23/11).
 - [ ] Rappel du jour (collection hadith-api) : vérifier qu'un hadith arrive avec son recueil et son numéro.
 - [ ] Météo (Open-Meteo) : vérifier la prévision du jour pour Lyon.
 - [ ] Trajets (API Routes) : vérifier un temps de trajet en TCL et en voiture.
-- [ ] Gmail, Outlook de l'école, Google Agenda, ntfy, Claude : premier vrai passage de chaque connecteur.
+- [x] Claude : premières vraies réponses de Jarvis (23/11).
+- [ ] Gmail, Outlook de l'école, Google Agenda, ntfy (notifications envoyées par Jarvis) : premier vrai passage.
 
 ## 5. Manageo
 
