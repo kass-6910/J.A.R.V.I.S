@@ -20,7 +20,7 @@ Terminer d'abord les phases 3 et 4 de ce document : ports liés à `127.0.0.1`, 
    ```bash
    sudo git clone https://github.com/kass-6910/J.A.R.V.I.S.git /opt/jarvis
    ```
-   Puis, dans `/opt/jarvis`, se placer sur la branche voulue.
+   La branche `main` est la version à mettre en ligne.
 3. **Configuration** : copier `deploy/env.production.example` en `/opt/jarvis/.env` (`chmod 600 .env`), puis remplir les secrets. `JARVIS_TOKEN` et `JARVIS_DB_PASSWORD` se génèrent avec `openssl rand -hex 32`.
 4. **Démarrage** :
    ```bash

@@ -29,13 +29,13 @@ La phase 4 (en-têtes de sécurité et limite de connexion du nginx de Manageo) 
 
 Depuis ton Mac, qui a la clé SSH du VPS. Garde la première fenêtre ouverte jusqu'à la fin.
 
-1. Envoyer le script sur le serveur :
-   ```bash
-   scp deploy/securiser-vps.sh root@<IP du VPS>:/root/
-   ```
-2. Se connecter au serveur :
+1. Se connecter au serveur :
    ```bash
    ssh root@<IP du VPS>
+   ```
+2. Télécharger le script sur le serveur :
+   ```bash
+   curl -fsSL -o /root/securiser-vps.sh https://raw.githubusercontent.com/kass-6910/J.A.R.V.I.S/main/deploy/securiser-vps.sh && chmod +x /root/securiser-vps.sh
    ```
 3. Simulation (ne change rien, montre ce qui sera fait) :
    ```bash
