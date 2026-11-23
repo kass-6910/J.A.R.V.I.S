@@ -42,7 +42,7 @@ Dans les identifiants :
 
 Ensuite :
 
-1. `npm run google:auth -w server`, depuis le Mac : affiche `GOOGLE_REFRESH_TOKEN`.
+1. Refresh token : directement sur le serveur, voir `node dist/connectors/google/authorize.js` (en-tête du fichier `server/src/connectors/google/authorize.ts`).
 2. Mettre `GMAIL_ENABLED=true`.
 
 ### Outlook de l'école
