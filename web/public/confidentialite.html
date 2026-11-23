@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Jarvis · Confidentialité</title>
+    <style>
+      :root { --bg: #121417; --card: #1c1f24; --border: #2a2e35; --text: #f2f4f7; --muted: #8b929c; color-scheme: dark; }
+      body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 Inter, -apple-system, system-ui, sans-serif; }
+      main { max-width: 680px; margin: 0 auto; padding: 40px 16px 64px; }
+      h1 { font-size: 26px; margin: 0 0 4px; }
+      h2 { font-size: 17px; margin: 28px 0 6px; }
+      p, li { color: var(--text); }
+      .muted { color: var(--muted); }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Jarvis : règles de confidentialité</h1>
+      <p class="muted">Assistant personnel privé, à usage exclusif de son propriétaire. Mise à jour : novembre 2026.</p>
+
+      <h2>À qui s'adresse Jarvis</h2>
+      <p>Jarvis est un assistant personnel utilisé par une seule personne, son propriétaire. Il n'est pas proposé au public et n'a pas d'autres utilisateurs.</p>
+
+      <h2>Données Google utilisées</h2>
+      <ul>
+        <li><strong>Google Agenda</strong> : lecture des rendez-vous, pour organiser la journée. Jarvis ne crée, ne modifie ni ne supprime aucun événement.</li>
+        <li><strong>Gmail</strong> : lecture des messages pour les trier et les résumer, et envoi d'une réponse uniquement après validation explicite du propriétaire. Jarvis ne supprime, ne déplace ni ne marque aucun message.</li>
+      </ul>
+
+      <h2>Où sont gardées les données</h2>
+      <p>Les données sont stockées sur le serveur privé du propriétaire, dans une base dédiée, accessible uniquement avec son jeton. Elles ne sont ni vendues, ni partagées, ni utilisées à des fins publicitaires.</p>
+      <p>Pour rédiger les résumés et les réponses, le contenu nécessaire est transmis au service d'IA Claude (Anthropic), qui le traite pour le compte du propriétaire.</p>
+
+      <h2>Usage limité</h2>
+      <p>L'utilisation et le transfert des informations reçues des API Google respectent la <a href="https://developers.google.com/terms/api-services-user-data-policy" style="color: #4c8dff">politique relative aux données utilisateur des services d'API Google</a>, y compris les exigences d'usage limité.</p>
+
+      <h2>Révoquer l'accès</h2>
+      <p>L'accès de Jarvis au compte Google peut être retiré à tout moment depuis <a href="https://myaccount.google.com/permissions" style="color: #4c8dff">myaccount.google.com/permissions</a>.</p>
+    </main>
+  </body>
+</html>
