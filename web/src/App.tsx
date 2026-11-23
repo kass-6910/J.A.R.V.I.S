@@ -1,6 +1,7 @@
 import { type FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import {
   api,
+  askStream,
   getToken,
   setToken,
   UnauthorizedError,
@@ -17,7 +18,7 @@ import {
   type Space,
   type Task,
 } from "./api";
-import { canListen, listen, speak, unlockSpeech } from "./voice";
+import { canListen, createSpeaker, listen, speak, unlockSpeech } from "./voice";
 import { type Act, MailRow, PRIORITY_LABEL, ShopAlerts, SpaceDots, TaskRow, duration } from "./components";
 import { Health } from "./Health";
 import { Settings } from "./Settings";
@@ -248,11 +249,18 @@ function Home({ data, act, refresh }: { data: Data; act: Act; refresh: () => Pro
   async function ask(text: string, aloud: boolean) {
     if (!text || busy) return;
     setBusy(true);
+    setMessage("");
+    setReply("");
+    const speaker = aloud ? createSpeaker() : null;
     try {
-      const { reponse } = await api.ask(text);
+      let shown = "";
+      const reponse = await askStream(text, (delta) => {
+        shown += delta;
+        setReply(shown);
+        speaker?.push(delta);
+      });
       setReply(reponse);
-      setMessage("");
-      if (aloud) speak(reponse);
+      speaker?.end();
     } catch (err) {
       setReply(err instanceof Error ? err.message : "Erreur inconnue");
     } finally {

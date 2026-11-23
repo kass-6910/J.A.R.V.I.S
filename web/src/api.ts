@@ -306,6 +306,44 @@ async function call<T>(method: string, path: string, body?: unknown): Promise<T>
   return data as T;
 }
 
+/**
+ * Pose une question à Jarvis et reçoit la réponse au fil de l'eau (Server-Sent Events).
+ * onText reçoit chaque morceau de texte ; la promesse rend la réponse complète.
+ */
+export async function askStream(message: string, onText: (delta: string) => void): Promise<string> {
+  const res = await fetch("/api/jarvis/stream", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${getToken() ?? ""}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ message }),
+  });
+  if (res.status === 401) throw new UnauthorizedError();
+  if (!res.ok || !res.body) throw new Error(`Erreur ${res.status}`);
+
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buffer = "";
+  let received = "";
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += value;
+    let end: number;
+    while ((end = buffer.indexOf("\n\n")) !== -1) {
+      const line = buffer.slice(0, end).replace(/^data: /, "");
+      buffer = buffer.slice(end + 2);
+      const event = JSON.parse(line) as { type: "text"; text: string } | { type: "done" | "error"; reponse: string };
+      if (event.type === "text") {
+        received += event.text;
+        onText(event.text);
+      } else if (event.type === "error") {
+        throw new Error(event.reponse);
+      } else {
+        return event.reponse || received;
+      }
+    }
+  }
+  return received;
+}
+
 export const api = {
   spaces: () => call<Space[]>("GET", "/spaces"),
   tasks: () => call<{ open: Task[]; done: Task[] }>("GET", "/tasks"),

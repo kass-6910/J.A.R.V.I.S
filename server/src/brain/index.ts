@@ -45,13 +45,22 @@ export interface Answer {
   deviceReminders: DeviceReminder[];
 }
 
-export async function ask(message: string, options: { deviceCanCreate: boolean }): Promise<Answer> {
+export interface AskOptions {
+  deviceCanCreate: boolean;
+  /** Reçoit le texte au fil de l'eau, pour l'afficher et le lire avant la fin de la réponse. */
+  onText?: (delta: string) => void;
+}
+
+export async function ask(message: string, options: AskOptions): Promise<Answer> {
   if (Date.now() - history.at > HISTORY_TTL_MS) history.messages = [];
+  const contextStartedAt = Date.now();
   const context = await describeContext();
+  const contextMs = Date.now() - contextStartedAt;
   const session: Session = { deviceCanCreate: options.deviceCanCreate, deviceReminders: [] };
 
   const startedAt = Date.now();
-  const final = await claude.beta.messages.toolRunner({
+  let firstTextMs: number | null = null;
+  const runner = claude.beta.messages.toolRunner({
     model: config.JARVIS_MODEL,
     max_tokens: 16000,
     // Outils et consignes ne changent pas d'une demande à l'autre : mis en cache chez Claude,
@@ -63,15 +72,33 @@ export async function ask(message: string, options: { deviceCanCreate: boolean }
     fallbacks: "default",
     tools: buildTools(session),
     max_iterations: 12,
+    stream: true,
     messages: [
       ...history.messages,
       { role: "user", content: `<contexte>\n${context}\n</contexte>\n\n${message}` },
     ],
   });
 
+  // Le texte de chaque tour (« je regarde ton agenda », puis la réponse) est transmis dès qu'il arrive.
+  const parts: string[] = [];
+  for await (const stream of runner) {
+    let turnText = "";
+    stream.on("text", (delta) => {
+      if (firstTextMs === null) firstTextMs = Date.now() - startedAt;
+      if (!turnText && parts.length > 0) options.onText?.(" ");
+      turnText += delta;
+      options.onText?.(delta);
+    });
+    await stream.finalMessage();
+    if (turnText.trim()) parts.push(turnText.trim());
+  }
+  const final = await runner.done();
+
   console.log(
     JSON.stringify({
       msg: "réponse de Jarvis",
+      contextMs,
+      firstTextMs,
       ms: Date.now() - startedAt,
       cacheRead: final.usage.cache_read_input_tokens ?? 0,
       input: final.usage.input_tokens,
@@ -82,11 +109,7 @@ export async function ask(message: string, options: { deviceCanCreate: boolean }
   if (final.stop_reason === "refusal") {
     return { reply: "Désolé, je ne peux pas répondre à cette demande.", deviceReminders: session.deviceReminders };
   }
-  const reply = final.content
-    .filter((block) => block.type === "text")
-    .map((block) => block.text)
-    .join("")
-    .trim();
+  const reply = parts.join(" ").trim();
   if (!reply) throw new Error(`Réponse vide de Claude (stop_reason : ${final.stop_reason}).`);
 
   // L'historique ne garde que le texte : le contexte est recalculé à chaque demande.
