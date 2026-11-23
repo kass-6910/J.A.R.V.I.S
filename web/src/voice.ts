@@ -110,6 +110,42 @@ export function speak(text: string): void {
 }
 
 /**
+ * Lecture au fil de l'eau : chaque phrase est lue dès qu'elle est complète,
+ * pendant que la suite de la réponse arrive encore.
+ */
+export function createSpeaker(): { push: (delta: string) => void; end: () => void } {
+  const supported = "speechSynthesis" in window;
+  if (supported) speechSynthesis.cancel();
+  const voice = supported ? bestFrenchVoice() : undefined;
+  let pending = "";
+
+  const say = (sentence: string) => {
+    if (!supported || !sentence.trim()) return;
+    const utterance = new SpeechSynthesisUtterance(sentence.trim());
+    utterance.lang = "fr-FR";
+    if (voice) utterance.voice = voice;
+    utterance.rate = 1.05;
+    speechSynthesis.speak(utterance);
+  };
+
+  return {
+    push(delta) {
+      pending += delta;
+      // Une phrase est complète quand une ponctuation finale est suivie d'un espace.
+      const match = /^([\s\S]*[.!?…])\s+/.exec(pending);
+      if (match) {
+        say(match[1]!);
+        pending = pending.slice(match[0].length);
+      }
+    },
+    end() {
+      say(pending);
+      pending = "";
+    },
+  };
+}
+
+/**
  * Safari ne lit à voix haute qu'après un geste de l'utilisateur :
  * une phrase vide, lancée au toucher du micro, débloque la lecture de la réponse.
  */

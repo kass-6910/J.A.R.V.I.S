@@ -104,6 +104,30 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     }
   });
 
+  // Même demande que /jarvis, mais la réponse arrive au fil de l'eau (Server-Sent Events) :
+  // la web app affiche et lit la première phrase pendant que Claude écrit la suite.
+  app.post("/jarvis/stream", async (req, reply) => {
+    const body = z.object({ message: z.string().trim().min(1).max(4000) }).parse(req.body);
+    reply.hijack();
+    const res = reply.raw;
+    res.writeHead(200, {
+      "Content-Type": "text/event-stream; charset=utf-8",
+      "Cache-Control": "no-cache, no-transform",
+      Connection: "keep-alive",
+      // nginx ne doit pas retenir la réponse.
+      "X-Accel-Buffering": "no",
+    });
+    const send = (event: Record<string, unknown>) => res.write(`data: ${JSON.stringify(event)}\n\n`);
+    try {
+      const answer = await ask(body.message, { deviceCanCreate: false, onText: (text) => send({ type: "text", text }) });
+      send({ type: "done", reponse: answer.reply });
+    } catch (err) {
+      req.log.error(err);
+      send({ type: "error", reponse: "Je n'arrive pas à réfléchir pour l'instant, réessaie dans un instant." });
+    }
+    res.end();
+  });
+
   app.get("/spaces", () => db.query.spaces.findMany({ orderBy: (s, { asc }) => asc(s.position) }));
 
   app.get("/spaces/overview", async () => ({ spaces: await spacesOverview(), links: await spaceLinks() }));
