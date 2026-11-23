@@ -1,6 +1,7 @@
 import type { FastifyInstance } from "fastify";
 import { z } from "zod";
 import { ask } from "../brain/index.js";
+import { usageSummary } from "../services/usage.js";
 import { db, SPACE_SLUGS } from "../db/client.js";
 import { PRIORITIES } from "../db/schema.js";
 import { now, parseDateTime, parseDay, zone } from "../lib/time.js";
@@ -127,6 +128,8 @@ export async function apiRoutes(app: FastifyInstance): Promise<void> {
     }
     res.end();
   });
+
+  app.get("/usage", () => usageSummary());
 
   app.get("/spaces", () => db.query.spaces.findMany({ orderBy: (s, { asc }) => asc(s.position) }));
 

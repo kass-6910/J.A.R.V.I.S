@@ -1,4 +1,5 @@
 import { and, desc, eq, gte, inArray, lt, or } from "drizzle-orm";
+import { recordUsage } from "./usage.js";
 import type { DateTime } from "luxon";
 import { describeReview, reviewPeriod, type Review } from "../briefing/review.js";
 import { config } from "../config.js";
@@ -221,6 +222,7 @@ async function write(kind: BriefingKind, facts: string): Promise<Pick<Briefing, 
       fallbacks: "default",
       messages: [{ role: "user", content: `<faits>\n${facts}\n</faits>` }],
     });
+    await recordUsage("briefing", res);
     const text = res.content
       .filter((b) => b.type === "text")
       .map((b) => b.text)

@@ -1,4 +1,5 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { recordUsage } from "./usage.js";
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -206,6 +207,7 @@ export async function addReceipt(imageBase64: string, mediaType: "image/jpeg" | 
       },
     ],
   });
+  await recordUsage("receipt", res);
   const out = res.parsed_output;
   if (res.stop_reason === "refusal" || !out) return { error: "Je n'ai pas pu lire cette image." };
   if (!out.readable || out.total_ttc === null) return { error: "Ce n'est pas une facture lisible : montant introuvable." };

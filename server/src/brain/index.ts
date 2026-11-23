@@ -1,6 +1,7 @@
 import type Anthropic from "@anthropic-ai/sdk";
 import { config } from "../config.js";
 import { claude } from "../lib/claude.js";
+import { recordUsage } from "../services/usage.js";
 import { buildTools, describeContext, type DeviceReminder, type Session } from "../tools/index.js";
 
 const SYSTEM = `Tu es Jarvis, l'assistant personnel de Jessim. Tu l'aides à gérer ses tâches et son planning, et tu allèges sa charge mentale.
@@ -89,7 +90,7 @@ export async function ask(message: string, options: AskOptions): Promise<Answer>
       turnText += delta;
       options.onText?.(delta);
     });
-    await stream.finalMessage();
+    await recordUsage("conversation", await stream.finalMessage());
     if (turnText.trim()) parts.push(turnText.trim());
   }
   const final = await runner.done();

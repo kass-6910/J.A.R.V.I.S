@@ -50,6 +50,8 @@ const schema = z.object({
   MEAL_PREFERENCES: z.string().default("halal (ni porc ni alcool), cuisine simple, moins de 30 minutes en semaine"),
   /** Plafond des dépenses perso du mois, en euros ; 0 = pas d'alerte. */
   BUDGET_MONTHLY_EUR: z.coerce.number().min(0).default(0),
+  /** Plafond mensuel des crédits Claude, en dollars : alerte à 80 % puis 100 % ; 0 = pas d'alerte. */
+  CLAUDE_MONTHLY_BUDGET_USD: z.coerce.number().min(0).default(0),
   /** Dossier des fichiers de Jarvis (photos de factures, de vêtements). */
   DATA_DIR: z.string().default("data"),
   /** Trajets : clé de l'API Routes de Google Maps, adresse de la maison, mode préféré, marge avant de partir. */

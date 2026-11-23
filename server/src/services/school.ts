@@ -1,4 +1,5 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { recordUsage } from "./usage.js";
 import { randomUUID } from "node:crypto";
 import { mkdir, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -166,6 +167,7 @@ export async function addCourse(pdfBase64: string, fileName: string): Promise<Co
       },
     ],
   });
+  await recordUsage("course", res);
   const out = res.parsed_output;
   if (res.stop_reason === "refusal" || !out) return { error: "Je n'ai pas pu lire ce cours." };
 

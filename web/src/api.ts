@@ -344,7 +344,19 @@ export async function askStream(message: string, onText: (delta: string) => void
   return received;
 }
 
+export interface UsageSummary {
+  today: number;
+  month: number;
+  lastMonth: number;
+  projection: number;
+  budget: number;
+  requestsToday: number;
+  byFeature: { feature: string; label: string; usd: number; requests: number }[];
+  days: { day: string; usd: number }[];
+}
+
 export const api = {
+  usage: () => call<UsageSummary>("GET", "/usage"),
   spaces: () => call<Space[]>("GET", "/spaces"),
   tasks: () => call<{ open: Task[]; done: Task[] }>("GET", "/tasks"),
   planning: () => call<DayPlan>("GET", "/planning"),
