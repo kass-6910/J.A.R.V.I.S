@@ -22,7 +22,11 @@ Terminer d'abord les phases 3 et 4 de ce document : ports liés à `127.0.0.1`, 
    ```
    La branche `main` est la version à mettre en ligne.
 3. **Configuration** : copier `deploy/env.production.example` en `/opt/jarvis/.env` (`chmod 600 .env`), puis remplir les secrets. `JARVIS_TOKEN` et `JARVIS_DB_PASSWORD` se génèrent avec `openssl rand -hex 32`.
-4. **Démarrage** :
+4. **Démarrage** (le dossier `data` doit appartenir à l'utilisateur du conteneur, uid 1000) :
+   ```bash
+   mkdir -p data && chown -R 1000:1000 data
+   ```
+   Puis :
    ```bash
    cd /opt/jarvis && docker compose -f docker-compose.prod.yml up -d --build
    ```
@@ -48,5 +52,4 @@ Les migrations de la base s'appliquent toutes seules au démarrage.
 
 ## Points à vérifier au premier démarrage
 
-- Le `docker build` : l'image n'a pas pu être construite dans l'environnement de développement (pas de Docker). Son arborescence a en revanche été reproduite et testée : migrations, web app et API.
 - Chaque connecteur réel, voir `TODO.md`.
