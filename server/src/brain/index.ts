@@ -50,10 +50,13 @@ export async function ask(message: string, options: { deviceCanCreate: boolean }
   const context = await describeContext();
   const session: Session = { deviceCanCreate: options.deviceCanCreate, deviceReminders: [] };
 
+  const startedAt = Date.now();
   const final = await claude.beta.messages.toolRunner({
     model: config.JARVIS_MODEL,
     max_tokens: 16000,
-    system: SYSTEM,
+    // Outils et consignes ne changent pas d'une demande à l'autre : mis en cache chez Claude,
+    // ils ne sont pas réanalysés à chaque phrase (réponse plus rapide, moins chère).
+    system: [{ type: "text", text: SYSTEM, cache_control: { type: "ephemeral" } }],
     output_config: { effort: config.JARVIS_EFFORT },
     // Si le modèle principal décline une demande, l'API la rejoue sur un modèle de secours.
     betas: ["server-side-fallback-2026-07-01"],
@@ -65,6 +68,16 @@ export async function ask(message: string, options: { deviceCanCreate: boolean }
       { role: "user", content: `<contexte>\n${context}\n</contexte>\n\n${message}` },
     ],
   });
+
+  console.log(
+    JSON.stringify({
+      msg: "réponse de Jarvis",
+      ms: Date.now() - startedAt,
+      cacheRead: final.usage.cache_read_input_tokens ?? 0,
+      input: final.usage.input_tokens,
+      output: final.usage.output_tokens,
+    }),
+  );
 
   if (final.stop_reason === "refusal") {
     return { reply: "Désolé, je ne peux pas répondre à cette demande.", deviceReminders: session.deviceReminders };

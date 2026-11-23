@@ -20,7 +20,8 @@ const schema = z.object({
   JARVIS_MODEL: z.string().default("claude-sonnet-5-5"),
   /** Modèle des petites tâches de fond (tri des mails, classement par espace). */
   JARVIS_BACKGROUND_MODEL: z.string().default("claude-haiku-5-5"),
-  JARVIS_EFFORT: z.enum(["low", "medium", "high", "xhigh", "max"]).default("medium"),
+  /** Effort de réflexion du cerveau : « low » pour une conversation à la voix, rapide. */
+  JARVIS_EFFORT: z.enum(["low", "medium", "high", "xhigh", "max"]).default("low"),
   PLANNING_DAY_START: hhmm.default("08:00"),
   PLANNING_DAY_END: hhmm.default("22:00"),
   GOOGLE_CLIENT_ID: z.string().default(""),
