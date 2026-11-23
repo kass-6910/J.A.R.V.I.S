@@ -18,11 +18,11 @@ Les clés et mots de passe ne s'envoient jamais dans une conversation ni dans Gi
 
 | Quoi | Page | Variable du `.env` |
 |---|---|---|
-| Clé de l'IA (Claude) | https://platform.claude.com/settings/keys | `ANTHROPIC_API_KEY` |
+| Clé de l'IA (Claude) — fait | https://platform.claude.com/settings/keys | `ANTHROPIC_API_KEY` |
 | Plafond de dépense de l'IA | https://platform.claude.com/settings/limits | — |
 | Jeton secret de Jarvis | sur le serveur : `openssl rand -hex 32` | `JARVIS_TOKEN` |
 | Mot de passe de la base | sur le serveur : `openssl rand -hex 32` | `JARVIS_DB_PASSWORD` |
-| Notifications | app « ntfy » sur l'App Store (https://ntfy.sh), choisir un nom de sujet long et imprévisible | `NTFY_TOPIC` |
+| Notifications | app « ntfy » sur l'App Store (https://ntfy.sh), sujet long et imprévisible — fait | `NTFY_TOPIC` |
 
 ### Google : Agenda, Gmail, trajets (un seul projet)
 
@@ -64,7 +64,7 @@ L'école peut bloquer les applications externes : demander son accord en premier
 
 ## 3. Mise en ligne de Jarvis
 
-- [ ] Sous-domaine : chez le fournisseur du domaine `manageo.site` (par exemple https://hpanel.hostinger.com s'il est chez Hostinger), créer un enregistrement DNS `A` nommé `jarvis` vers `72.62.185.231`.
+- [ ] Sous-domaine `jarvis.kassdev.fr` : dans https://hpanel.hostinger.com → Domaines → kassdev.fr → Enregistrements DNS, créer un enregistrement `A` nommé `jarvis` vers `72.62.185.231`. Vérifier avec `dig jarvis.kassdev.fr +short`.
 - [ ] Suivre `docs/DEPLOIEMENT.md` : code, `.env`, `docker compose`, nginx, certificat HTTPS, sauvegardes.
 - [ ] Vérifier le premier `docker build` sur le VPS.
 - [ ] Renseigner `PUBLIC_URL` (sinon pas de boutons « Pris » ni « Je suis là » dans les notifications).
