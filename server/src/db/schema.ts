@@ -479,3 +479,22 @@ export const courses = pgTable("courses", {
   quiz: jsonb().$type<{ question: string; answer: string }[]>().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+/** Consommation de Claude : un enregistrement par appel, pour suivre les crédits. */
+export const claudeUsage = pgTable(
+  "claude_usage",
+  {
+    id: uuid().primaryKey().defaultRandom(),
+    at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    /** Fonction de Jarvis : conversation, briefing, tri des mails… */
+    feature: text().notNull(),
+    model: text().notNull(),
+    inputTokens: integer("input_tokens").notNull(),
+    outputTokens: integer("output_tokens").notNull(),
+    cacheReadTokens: integer("cache_read_tokens").notNull().default(0),
+    cacheWriteTokens: integer("cache_write_tokens").notNull().default(0),
+    /** Coût estimé en millionièmes de dollar. */
+    costMicroUsd: integer("cost_micro_usd").notNull(),
+  },
+  (t) => [index("claude_usage_at_idx").on(t.at)],
+);

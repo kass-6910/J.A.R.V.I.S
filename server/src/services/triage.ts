@@ -1,4 +1,5 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { recordUsage } from "./usage.js";
 import { z } from "zod";
 import { config } from "../config.js";
 import { SPACE_SLUGS, type SpaceSlug } from "../db/client.js";
@@ -72,6 +73,7 @@ ${mail.body.slice(0, 6000)}
       },
     ],
   });
+  await recordUsage("mail_triage", res);
   const out = res.parsed_output;
   if (res.stop_reason === "refusal" || !out) return null;
   const spaces = new Set(out.spaces);
@@ -100,6 +102,7 @@ export async function guessTaskSpaces(title: string): Promise<SpaceSlug[] | null
     output_config: { effort: "low", format: zodOutputFormat(TaskSpaces) },
     messages: [{ role: "user", content: `Tâche : ${title}` }],
   });
+  await recordUsage("task_spaces", res);
   const out = res.parsed_output;
   if (res.stop_reason === "refusal" || !out || !out.confident || out.spaces.length === 0) return null;
   return out.spaces;

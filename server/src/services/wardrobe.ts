@@ -1,4 +1,5 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { recordUsage } from "./usage.js";
 import { randomUUID } from "node:crypto";
 import { mkdir, unlink, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -48,6 +49,7 @@ export async function addGarment(
       },
     ],
   });
+  await recordUsage("garment", res);
   const out = res.parsed_output;
   if (res.stop_reason === "refusal" || !out) return { error: "Je n'ai pas pu reconnaître ce vêtement." };
   if (!out.is_clothing) return { error: "Je ne vois pas de vêtement sur cette photo." };

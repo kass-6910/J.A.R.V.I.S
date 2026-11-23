@@ -1,4 +1,5 @@
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { recordUsage } from "./usage.js";
 import { and, asc, gte, inArray, lte } from "drizzle-orm";
 import { DateTime } from "luxon";
 import { z } from "zod";
@@ -111,6 +112,7 @@ ${lines.join("\n")}`,
         },
       ],
     });
+    await recordUsage("meals", res);
     const out = res.parsed_output;
     if (res.stop_reason === "refusal" || !out) return null;
     const plan = new Map<string, Record<MealSlot, Meal>>();

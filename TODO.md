@@ -20,7 +20,7 @@ Les clés et mots de passe ne s'envoient jamais dans une conversation ni dans Gi
 | Quoi | Page | Variable du `.env` |
 |---|---|---|
 | Clé de l'IA (Claude) — fait, **expire le 23/12/2026** : la renouveler avant | https://platform.claude.com/settings/keys | `ANTHROPIC_API_KEY` |
-| Plafond de dépense de l'IA | https://platform.claude.com/settings/limits | — |
+| Plafond de dépense de l'IA (et alerte Jarvis à 80 % / 100 %) | https://platform.claude.com/settings/limits | `CLAUDE_MONTHLY_BUDGET_USD` |
 | Jeton secret de Jarvis | sur le serveur : `openssl rand -hex 32` | `JARVIS_TOKEN` |
 | Mot de passe de la base | sur le serveur : `openssl rand -hex 32` | `JARVIS_DB_PASSWORD` |
 | Notifications | app « ntfy » sur l'App Store (https://ntfy.sh), sujet long et imprévisible — fait | `NTFY_TOPIC` |

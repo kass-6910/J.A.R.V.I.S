@@ -884,3 +884,66 @@ nav button {
 .exam-form {
   margin-top: 8px;
 }
+
+/* Crédits Claude (Réglages) */
+.credits {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.credits .meta {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+}
+.credits a {
+  color: var(--accent);
+}
+.credits-figures {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+.credits-figures strong {
+  display: block;
+  font-size: 20px;
+  font-variant-numeric: tabular-nums;
+}
+.credits-budget {
+  background: var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.credits-budget .meta {
+  padding: 4px 8px;
+}
+.credits-bar {
+  height: 6px;
+  background: var(--success);
+}
+.credits-bar.warn {
+  background: var(--warning);
+}
+.credits-days {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 48px;
+}
+.credits-days i {
+  flex: 1;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  opacity: 0.8;
+}
+.credits-features {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.credits-features li {
+  display: flex;
+  justify-content: space-between;
+  padding: 6px 0;
+  border-top: 1px solid var(--border);
+}
