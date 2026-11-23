@@ -61,6 +61,8 @@ L'école peut bloquer les applications externes : demander son accord en premier
 
 ### iPhone
 
+- [ ] App native Jarvis (`mobile/`, voir `mobile/README.md`) : compte Apple Developer (99 $/an) https://developer.apple.com/programs/enroll/ et compte Expo https://expo.dev/signup, puis `npm run build:ios` et `npm run submit:ios` depuis le Mac, installation par TestFlight.
+- [ ] Voix Premium française sur l'iPhone : Réglages > Accessibilité > Contenu énoncé > Voix > Français.
 - [ ] App « Health Auto Export » (App Store), réglée selon `shortcuts/sante.md`.
 - [ ] Raccourcis « Jarvis » (`shortcuts/jarvis.md`) et « Briefing » (`shortcuts/briefing.md`).
 - [ ] Automatisations d'arrivée et de départ (`shortcuts/localisation.md`).
@@ -106,4 +108,4 @@ Ces services n'étaient pas joignables depuis l'environnement de développement 
 - [ ] Réseaux sociaux : Meta Business Suite (Instagram, Facebook).
 - [ ] Messages WhatsApp envoyés par un Raccourci.
 - [ ] Alertes « zone de danger » à partir des radars fixes publiés en open data.
-- [ ] Voix ElevenLabs, appli iPhone native (React Native + Expo, TestFlight).
+- [ ] Voix ElevenLabs dans l'app native.
