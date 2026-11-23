@@ -73,14 +73,39 @@ export function listen(handlers: ListenHandlers): () => void {
   return () => rec.stop();
 }
 
-/** Lit un texte à voix haute en français. */
+/** Noms des voix françaises les plus naturelles sur iPhone et Mac. */
+const GOOD_VOICES = ["audrey", "thomas", "amélie", "amelie", "aurélie", "aurelie", "marie", "jacques"];
+
+/**
+ * Meilleure voix française disponible : « Premium », puis « améliorée », puis une voix connue
+ * pour être naturelle, plutôt que la première venue (souvent la plus robotique).
+ */
+function bestFrenchVoice(): SpeechSynthesisVoice | undefined {
+  const score = (v: SpeechSynthesisVoice) => {
+    const name = v.name.toLowerCase();
+    let s = 0;
+    if (v.lang === "fr-FR") s += 4;
+    if (/premium/.test(name)) s += 40;
+    if (/enhanced|améliorée|amelioree|neural|natural/.test(name)) s += 20;
+    if (GOOD_VOICES.some((g) => name.includes(g))) s += 8;
+    if (/eddy|flo|grandma|grandpa|reed|rocko|sandy|shelley|bad news|bells|bubbles|jester|organ|trinoids|whisper|zarvox/.test(name)) s -= 30;
+    return s;
+  };
+  return speechSynthesis
+    .getVoices()
+    .filter((v) => v.lang.startsWith("fr"))
+    .sort((a, b) => score(b) - score(a))[0];
+}
+
+/** Lit un texte à voix haute en français, avec la meilleure voix de l'appareil. */
 export function speak(text: string): void {
   if (!("speechSynthesis" in window)) return;
   speechSynthesis.cancel();
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "fr-FR";
-  const voice = speechSynthesis.getVoices().find((v) => v.lang.startsWith("fr"));
+  const voice = bestFrenchVoice();
   if (voice) utterance.voice = voice;
+  utterance.rate = 1.05;
   speechSynthesis.speak(utterance);
 }
 
@@ -91,4 +116,10 @@ export function speak(text: string): void {
 export function unlockSpeech(): void {
   if (!("speechSynthesis" in window)) return;
   speechSynthesis.speak(new SpeechSynthesisUtterance(""));
+}
+
+// Sur iPhone, la liste des voix arrive après le chargement de la page : on la demande tout de suite.
+if (typeof window !== "undefined" && "speechSynthesis" in window) {
+  speechSynthesis.getVoices();
+  speechSynthesis.addEventListener?.("voiceschanged", () => speechSynthesis.getVoices());
 }
