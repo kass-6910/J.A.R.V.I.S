@@ -1,0 +1,30 @@
+{
+  "expo": {
+    "name": "Jarvis",
+    "slug": "jarvis",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "dark",
+    "splash": {
+      "backgroundColor": "#121417"
+    },
+    "ios": {
+      "bundleIdentifier": "fr.kassdev.jarvis",
+      "supportsTablet": false,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
+    "plugins": [
+      "expo-secure-store",
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Jarvis utilise le micro pour t'écouter quand tu maintiens le bouton.",
+          "speechRecognitionPermission": "Jarvis transforme ta voix en texte pour comprendre ta demande."
+        }
+      ]
+    ]
+  }
+}

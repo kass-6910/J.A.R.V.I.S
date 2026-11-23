@@ -7,6 +7,7 @@ Assistant personnel de Jessim. Une seule application Node.js (TypeScript, Fastif
 - `npm test` : tests (Vitest, dans `server`).
 - `npm run typecheck` : types du serveur et de la web app. À lancer avant chaque commit.
 - `npm run db:generate` : après toute modification de `server/src/db/schema.ts`. Ne jamais éditer une migration déjà commitée.
+- App iPhone : `mobile/` (Expo), projet npm séparé, hors des workspaces et de l'image Docker. `cd mobile && npm run typecheck`. Elle n'utilise que les routes `/api` existantes.
 - Lancer en local : PostgreSQL (`docker compose up -d`), un `.env` copié de `.env.example`, puis `npm run dev`.
 
 ## Architecture
