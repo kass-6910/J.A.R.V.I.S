@@ -9,6 +9,7 @@ Les clés et mots de passe ne s'envoient jamais dans une conversation ni dans Gi
 - [x] Bases de données et ports des autres projets fermés à Internet (21/11/2026). Manageo n'est pas touché.
 - [ ] Garder le pare-feu `ufw`. Sur le serveur, `/root/securiser-vps.sh --appliquer`, tester SSH dans un deuxième onglet, puis `/root/securiser-vps.sh --confirmer` dans les 10 minutes (voir `docs/SECURISER-VPS.md`).
 - [ ] Changer le mot de passe root (`passwd`) : il a été écrit en clair dans une conversation.
+- [ ] Remplacer les secrets apparus en clair dans une conversation ou une capture : `JARVIS_TOKEN` et `JARVIS_DB_PASSWORD` (`openssl rand -hex 32`), clé Claude (https://platform.claude.com/settings/keys), code secret du client Google (Google Cloud → Clients → Jarvis → ajouter un secret, puis supprimer l'ancien).
 - [ ] Plus tard : passer d'Ubuntu 25.10 (plus maintenu) à 26.04 LTS, en préparant tous les projets du serveur.
 - [ ] Passer le dépôt GitHub de Jarvis en privé : https://github.com/kass-6910/J.A.R.V.I.S/settings (en bas, « Change visibility »).
 
@@ -25,6 +26,8 @@ Les clés et mots de passe ne s'envoient jamais dans une conversation ni dans Gi
 | Notifications | app « ntfy » sur l'App Store (https://ntfy.sh), sujet long et imprévisible — fait | `NTFY_TOPIC` |
 
 ### Google : Agenda, Gmail, trajets (un seul projet)
+
+- [x] Agenda et Gmail connectés (23/11/2026) : projet « jarvis » publié « En production », client « Application de bureau ». Reste la clé API Routes pour les trajets.
 
 | Étape | Page |
 |---|---|
@@ -79,7 +82,8 @@ Ces services n'étaient pas joignables depuis l'environnement de développement 
 - [ ] Météo (Open-Meteo) : vérifier la prévision du jour pour Lyon.
 - [ ] Trajets (API Routes) : vérifier un temps de trajet en TCL et en voiture.
 - [x] Claude : premières vraies réponses de Jarvis (23/11).
-- [ ] Gmail, Outlook de l'école, Google Agenda, ntfy (notifications envoyées par Jarvis) : premier vrai passage.
+- [x] Google Agenda et Gmail : connectés (23/11).
+- [ ] Outlook de l'école, ntfy (notifications envoyées par Jarvis) : premier vrai passage.
 
 ## 5. Manageo
 
