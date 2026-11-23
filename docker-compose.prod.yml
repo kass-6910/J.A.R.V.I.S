@@ -1,0 +1,48 @@
+# Mise en ligne sur le VPS (partagé avec Manageo et d'autres projets) : voir docs/DEPLOIEMENT.md.
+# Aucun port public : l'application écoute sur 127.0.0.1:4100, nginx fait le reste.
+# La base de Jarvis est la sienne, dans son conteneur, sans port publié : elle ne voit pas celle de Manageo.
+
+services:
+  jarvis-postgres:
+    image: postgres:16-alpine
+    container_name: jarvis-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: jarvis
+      POSTGRES_PASSWORD: ${JARVIS_DB_PASSWORD:?JARVIS_DB_PASSWORD est requis dans .env}
+      POSTGRES_DB: jarvis
+      TZ: Europe/Paris
+    volumes:
+      - ./postgres-data:/var/lib/postgresql/data
+    networks:
+      - jarvis-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jarvis -d jarvis"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  jarvis:
+    build: .
+    container_name: jarvis
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PORT: "4100"
+      HOST: 0.0.0.0
+      DATABASE_URL: postgres://jarvis:${JARVIS_DB_PASSWORD}@jarvis-postgres:5432/jarvis
+      DATA_DIR: /app/server/data
+      TZ: Europe/Paris
+    ports:
+      - "127.0.0.1:4100:4100"
+    volumes:
+      - ./data:/app/server/data
+    depends_on:
+      jarvis-postgres:
+        condition: service_healthy
+    networks:
+      - jarvis-network
+
+networks:
+  jarvis-network:
+    driver: bridge

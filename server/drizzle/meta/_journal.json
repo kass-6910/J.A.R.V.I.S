@@ -1,0 +1,90 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1795191899380,
+      "tag": "0000_right_naoko",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1795192442911,
+      "tag": "0001_complete_jazinda",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795194184088,
+      "tag": "0002_reflective_nightshade",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1795195146017,
+      "tag": "0003_keen_vulcan",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795195335086,
+      "tag": "0004_moaning_wrecker",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795195694639,
+      "tag": "0005_serious_aaron_stack",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795196149028,
+      "tag": "0006_gigantic_paladin",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1795196528367,
+      "tag": "0007_flashy_human_fly",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1795196784918,
+      "tag": "0008_right_molten_man",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1795196988358,
+      "tag": "0009_volatile_sabra",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1795197231234,
+      "tag": "0010_simple_slapstick",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1795197479888,
+      "tag": "0011_fearless_sabretooth",
+      "breakpoints": true
+    }
+  ]
+}
