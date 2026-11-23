@@ -4,7 +4,7 @@ Jarvis s'installe sur le même VPS que Manageo, à côté et sans le toucher :
 
 - **Conteneurs séparés** : son application et sa propre base PostgreSQL (`docker-compose.prod.yml`). La base de Jarvis n'a aucun port publié et ne voit pas celle de Manageo.
 - **Port local** `127.0.0.1:4100`, libre sur ce VPS. Déjà pris par les autres projets : 3000 (portfolio), 3001 à 3003, 3010, 4000, 5173, 5432 à 5434, 8081, 9080, 82, 83.
-- **Sous-domaine** : son propre site nginx (`deploy/nginx-jarvis.conf`), en HTTPS par certbot, comme Manageo.
+- **Sous-domaine** : `jarvis.kassdev.fr`, sur ton domaine perso et non sur celui de Manageo, avec son propre site nginx (`deploy/nginx-jarvis.conf`) et son propre certificat HTTPS.
 - **Accès à Manageo** : uniquement par l'API publique `https://manageo.site/api/jarvis/v1`, avec sa clé dédiée (`docs/manageo-api.md`), jamais par la base de Manageo.
 
 ## Avant tout : la sécurité du VPS
@@ -15,7 +15,7 @@ Terminer d'abord les phases 3 et 4 de ce document : ports liés à `127.0.0.1`, 
 
 ## Étapes
 
-1. **DNS** : chez le fournisseur du domaine `manageo.site`, créer un enregistrement `A` `jarvis` vers l'IP du VPS. Le sous-domaine peut être un autre, à remplacer partout ci-dessous.
+1. **DNS** : dans hPanel Hostinger (domaine `kassdev.fr`, enregistrements DNS), créer un enregistrement `A` nommé `jarvis` vers `72.62.185.231`. Jarvis a son propre domaine : aucun lien avec `manageo.site`. Vérifier avec `dig jarvis.kassdev.fr +short`.
 2. **Code** :
    ```bash
    sudo git clone https://github.com/kass-6910/J.A.R.V.I.S.git /opt/jarvis
@@ -30,7 +30,7 @@ Terminer d'abord les phases 3 et 4 de ce document : ports liés à `127.0.0.1`, 
 5. **nginx** :
    - copier `deploy/nginx-jarvis.conf` en `/etc/nginx/sites-available/jarvis` (en y mettant le bon sous-domaine) ;
    - activer le site : `ln -s /etc/nginx/sites-available/jarvis /etc/nginx/sites-enabled/` ;
-   - commenter le bloc HTTPS le temps d'obtenir le certificat : `sudo certbot --nginx -d jarvis.manageo.site` ;
+   - commenter le bloc HTTPS le temps d'obtenir le certificat : `sudo certbot --nginx -d jarvis.kassdev.fr` ;
    - vérifier et recharger : `nginx -t && systemctl reload nginx`.
 6. **Connexions Google et Microsoft** : les commandes `google:auth` et `outlook:auth` se lancent depuis un ordinateur avec un navigateur (le Mac), dans une copie du dépôt avec le même `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` et `MS_CLIENT_ID`. Elles affichent les refresh tokens, à recopier dans le `.env` du serveur, puis :
    ```bash
